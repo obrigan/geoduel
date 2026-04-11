@@ -1,11 +1,4 @@
-// Включаем логирование для отладки (увидишь всё в консоли F12)
-Pusher.logToConsole = true;
-
-// --- НАСТРОЙКИ PUSHER ---
-const PUSHER_KEY = 'f6a3d8976c501cb9197e';
-const PUSHER_CLUSTER = 'eu';
-
-// --- ДАННЫЕ ИГРЫ ---
+// --- КОНФИГУРАЦИЯ ДАННЫХ ---
 const gameData = [
     { 
         map: 'images/map1.jpg', 
@@ -17,25 +10,14 @@ const gameData = [
         correct: 1, 
         images: ['images/r2_1.jpg', 'images/r2_2.jpg', 'images/r2_3.jpg', 'images/r2_4.jpg'] 
     }
+    // Добавляй остальные раунды ниже по такому же шаблону
 ];
 
-// --- ЛОГИКА КОМНАТЫ ---
 const urlParams = new URLSearchParams(window.location.search);
-let roomId = urlParams.get('room');
-if (!roomId) {
-    roomId = Math.random().toString(36).substring(7);
-    window.history.pushState({}, '', `?room=${roomId}`);
-}
-document.getElementById('room-link').innerText = window.location.href;
+let peerIdFromUrl = urlParams.get('peer');
 
-// Инициализация Pusher
-const pusher = new Pusher(PUSHER_KEY, { 
-    cluster: PUSHER_CLUSTER, 
-    forceTLS: true 
-});
-
-// Используем публичный канал, так как GitHub Pages не поддерживает авторизацию приватных каналов
-const pubChannel = pusher.subscribe(`geoduel-public-${roomId}`);
+const peer = new Peer();
+let conn;
 
 let currentRound = 0;
 let myScore = 0;
@@ -47,65 +29,77 @@ let oppHasAnswered = false;
 let timer;
 let timeLeft = 90;
 
-// --- ОБРАБОТКА СОБЫТИЙ СОПЕРНИКА ---
-
-pubChannel.bind('client-ready', (data) => {
-    console.log("Соперник нажал Готов!");
-    oppIsReady = true;
-    checkStartRound();
-});
-
-pubChannel.bind('client-answer', (data) => {
-    console.log("Соперник ответил:", data);
-    if (data.round === currentRound) {
-        oppHasAnswered = true;
-        processOpponentAnswer(data.choice);
-        checkRoundEnd();
+// Когда наш ID создан
+peer.on('open', (id) => {
+    if (!peerIdFromUrl) {
+        // Мы — создатель комнаты
+        const gameUrl = window.location.origin + window.location.pathname + '?peer=' + id;
+        document.getElementById('room-link').innerText = gameUrl;
+        document.getElementById('status').innerText = "Скинь новую ссылку другу!";
+    } else {
+        // Мы зашли по ссылке друга
+        conn = peer.connect(peerIdFromUrl);
+        document.getElementById('room-link').innerText = "Соединение...";
+        setupConnection();
     }
 });
 
-// --- ФУНКЦИИ ИГРЫ ---
+// Когда кто-то подключается к нам
+peer.on('connection', (c) => {
+    conn = c;
+    setupConnection();
+});
+
+function setupConnection() {
+    conn.on('open', () => {
+        document.getElementById('status').innerText = "Противник в сети!";
+        
+        conn.on('data', (data) => {
+            if (data.type === 'ready') {
+                oppIsReady = true;
+                checkStartRound();
+            }
+            if (data.type === 'answer') {
+                oppHasAnswered = true;
+                processOpponentAnswer(data.choice);
+                checkRoundEnd();
+            }
+        });
+    });
+}
 
 function setReady() {
     iAmReady = true;
     document.getElementById('ready-btn').disabled = true;
-    document.getElementById('ready-btn').innerText = "Готов!";
     document.getElementById('ready-status').innerText = "Ждем соперника...";
-    
-    // Отправляем сигнал готовности через pubChannel
-    pubChannel.trigger('client-ready', { ready: true });
+    if (conn) conn.send({ type: 'ready' });
     checkStartRound();
 }
 
 function checkStartRound() {
     if (iAmReady && oppIsReady) {
-        startRound();
+        document.getElementById('prep-screen').style.display = 'none';
+        document.getElementById('game-grid').style.display = 'grid';
+        loadRound();
     }
-}
-
-function startRound() {
-    document.getElementById('prep-screen').style.display = 'none';
-    document.getElementById('game-grid').style.display = 'grid';
-    loadRound();
 }
 
 function loadRound() {
     hasAnswered = false;
     oppHasAnswered = false;
     timeLeft = 90;
-    
     document.getElementById('timer').innerText = `Время: ${timeLeft}`;
     document.getElementById('round-num').innerText = currentRound + 1;
     document.getElementById('status').innerText = "Твой ход!";
     document.getElementById('game-grid').style.pointerEvents = 'auto';
     
     const round = gameData[currentRound];
+    document.getElementById('map-preview').src = round.map;
     for (let i = 0; i < 4; i++) {
         const img = document.getElementById(`img${i}`);
         img.src = round.images[i];
         img.parentElement.className = 'option';
     }
-    
     startTimer();
 }
 
@@ -116,7 +110,7 @@ function startTimer() {
         document.getElementById('timer').innerText = `Время: ${timeLeft}`;
         if (timeLeft <= 0) {
             clearInterval(timer);
-            if (!hasAnswered) sendChoice(-1); 
+            if (!hasAnswered) sendChoice(-1);
         }
     }, 1000);
 }
@@ -130,12 +124,7 @@ function sendChoice(index) {
     if (isCorrect) myScore++;
     
     if (index !== -1) highlightResult(index, isCorrect);
-    
-    // Отправляем ответ через pubChannel
-    pubChannel.trigger('client-answer', {
-        round: currentRound,
-        choice: index
-    });
+    if (conn) conn.send({ type: 'answer', choice: index, round: currentRound });
 
     document.getElementById('status').innerText = "Ждем соперника...";
     document.getElementById('game-grid').style.pointerEvents = 'none';
@@ -157,15 +146,13 @@ function processOpponentAnswer(choice) {
 function checkRoundEnd() {
     if (hasAnswered && oppHasAnswered) {
         document.getElementById('status').innerText = "Раунд завершен!";
-        
         setTimeout(() => {
             currentRound++;
             if (currentRound < gameData.length) {
                 iAmReady = false;
                 oppIsReady = false;
                 document.getElementById('ready-btn').disabled = false;
-                document.getElementById('ready-btn').innerText = "Я ГОТОВ";
-                document.getElementById('ready-status').innerText = "Ждем готовности игроков...";
+                document.getElementById('ready-status').innerText = "Ждем готовности...";
                 document.getElementById('map-preview').src = gameData[currentRound].map;
                 document.getElementById('prep-screen').style.display = 'flex';
                 document.getElementById('game-grid').style.display = 'none';
@@ -177,9 +164,9 @@ function checkRoundEnd() {
 }
 
 function showFinalResult() {
-    let resultText = myScore > oppScore ? "Ты победил! 🎉" : (myScore < oppScore ? "Ты проиграл... 💀" : "Ничья! 🤝");
-    document.getElementById('status').innerHTML = `<b>${resultText}</b><br>Финальный счет: ${myScore} - ${oppScore}`;
+    let resultText = myScore > oppScore ? "Победа! 🎉" : (myScore < oppScore ? "Поражение... 💀" : "Ничья! 🤝");
+    document.getElementById('status').innerHTML = `<b>${resultText}</b><br>Счет: ${myScore} - ${oppScore}`;
 }
 
-// Показываем карту первого раунда при загрузке
+// Показываем карту первого раунда
 document.getElementById('map-preview').src = gameData[0].map;
