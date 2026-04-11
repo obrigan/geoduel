@@ -154,3 +154,59 @@ body {
     .option img { height: 280px; }
     #map-preview { height: 50vh; }
 }
+/* ... (весь старый код остается) ... */
+
+/* СТИЛИ ДЛЯ ФИНАЛЬНОЙ СТРАНИЦЫ */
+#results-screen {
+    gap: 0;
+    justify-content: center;
+}
+
+.winner-display {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    margin: 20px 0;
+}
+
+/* Красивый кружок для ника */
+.winner-circle {
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    background: #111;
+    border: 8px solid transparent; /* Цвет рамки включит JS (зеленый или красный) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 50px rgba(0,0,0,0.8);
+    overflow: hidden;
+}
+
+#winner-name {
+    font-size: 36px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    max-width: 90%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* Стиль для кубка */
+.trophy-icon {
+    font-size: 100px;
+    text-shadow: 0 0 30px rgba(241, 196, 15, 0.4); /* Золотое свечение */
+}
+
+/* Неоновая подсветка для победителя (включит JS) */
+.winner-circle.winner-me {
+    border-color: #2ecc71;
+    box-shadow: 0 0 40px rgba(46, 204, 113, 0.5);
+}
+
+.winner-circle.winner-opp {
+    border-color: #ff4d4d;
+    box-shadow: 0 0 40px rgba(231, 76, 60, 0.5);
+}
