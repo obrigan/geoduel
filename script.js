@@ -1,3 +1,6 @@
+// Включаем логирование для отладки (увидишь всё в консоли F12)
+Pusher.logToConsole = true;
+
 // --- НАСТРОЙКИ PUSHER ---
 const PUSHER_KEY = 'f6a3d8976c501cb9197e';
 const PUSHER_CLUSTER = 'eu';
@@ -14,7 +17,6 @@ const gameData = [
         correct: 1, 
         images: ['images/r2_1.jpg', 'images/r2_2.jpg', 'images/r2_3.jpg', 'images/r2_4.jpg'] 
     }
-    // Добавь остальные раунды по аналогии ниже...
 ];
 
 // --- ЛОГИКА КОМНАТЫ ---
@@ -27,10 +29,13 @@ if (!roomId) {
 document.getElementById('room-link').innerText = window.location.href;
 
 // Инициализация Pusher
-const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER, forceTLS: true });
+const pusher = new Pusher(PUSHER_KEY, { 
+    cluster: PUSHER_CLUSTER, 
+    forceTLS: true 
+});
 
-// Используем 'cache-' для client-events без приватного сервера
-const channel = pusher.subscribe(`cache-room-${roomId}`);
+// Используем публичный канал, так как GitHub Pages не поддерживает авторизацию приватных каналов
+const pubChannel = pusher.subscribe(`geoduel-public-${roomId}`);
 
 let currentRound = 0;
 let myScore = 0;
@@ -44,15 +49,14 @@ let timeLeft = 90;
 
 // --- ОБРАБОТКА СОБЫТИЙ СОПЕРНИКА ---
 
-// Соперник нажал "Готов"
-channel.bind('client-ready', () => {
-    console.log("Соперник готов");
+pubChannel.bind('client-ready', (data) => {
+    console.log("Соперник нажал Готов!");
     oppIsReady = true;
     checkStartRound();
 });
 
-// Соперник ответил
-channel.bind('client-answer', (data) => {
+pubChannel.bind('client-answer', (data) => {
+    console.log("Соперник ответил:", data);
     if (data.round === currentRound) {
         oppHasAnswered = true;
         processOpponentAnswer(data.choice);
@@ -68,8 +72,8 @@ function setReady() {
     document.getElementById('ready-btn').innerText = "Готов!";
     document.getElementById('ready-status').innerText = "Ждем соперника...";
     
-    // Отправляем сигнал готовности
-    channel.trigger('client-ready', { ready: true });
+    // Отправляем сигнал готовности через pubChannel
+    pubChannel.trigger('client-ready', { ready: true });
     checkStartRound();
 }
 
@@ -93,7 +97,7 @@ function loadRound() {
     document.getElementById('timer').innerText = `Время: ${timeLeft}`;
     document.getElementById('round-num').innerText = currentRound + 1;
     document.getElementById('status').innerText = "Твой ход!";
-    document.getElementById('game-grid').classList.remove('disabled');
+    document.getElementById('game-grid').style.pointerEvents = 'auto';
     
     const round = gameData[currentRound];
     for (let i = 0; i < 4; i++) {
@@ -112,7 +116,7 @@ function startTimer() {
         document.getElementById('timer').innerText = `Время: ${timeLeft}`;
         if (timeLeft <= 0) {
             clearInterval(timer);
-            if (!hasAnswered) sendChoice(-1); // Время вышло - промах
+            if (!hasAnswered) sendChoice(-1); 
         }
     }, 1000);
 }
@@ -127,12 +131,14 @@ function sendChoice(index) {
     
     if (index !== -1) highlightResult(index, isCorrect);
     
-    channel.trigger('client-answer', {
+    // Отправляем ответ через pubChannel
+    pubChannel.trigger('client-answer', {
         round: currentRound,
         choice: index
     });
 
     document.getElementById('status').innerText = "Ждем соперника...";
+    document.getElementById('game-grid').style.pointerEvents = 'none';
     checkRoundEnd();
 }
 
@@ -155,7 +161,6 @@ function checkRoundEnd() {
         setTimeout(() => {
             currentRound++;
             if (currentRound < gameData.length) {
-                // Возвращаем экран карты для следующего раунда
                 iAmReady = false;
                 oppIsReady = false;
                 document.getElementById('ready-btn').disabled = false;
