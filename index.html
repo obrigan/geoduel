@@ -15,15 +15,15 @@
             <div id="timer">Время: 90</div>
             <div id="round-info">Раунд: <span id="round-num">1</span>/2</div>
             <div id="score">Счёт: <span id="score-me">0</span> - <span id="score-opp">0</span></div>
-            <div id="status">Ожидание соперника...</div>
+            <div id="status">Ожидание...</div>
         </div>
 
         <div id="prep-screen">
             <h2>Где эта точка?</h2>
             <div class="map-container">
-                <img id="map-preview" src="" alt="Карта">
+                <img id="map-preview" src="images/map1.jpg" alt="Карта" style="max-width: 80vw; max-height: 60vh;">
             </div>
-            <button id="ready-btn" onclick="setReady()">Готов!</button>
+            <button id="ready-btn" onclick="setReady()" style="padding: 15px 30px; background: #2ecc71; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 20px;">Готов!</button>
             <p id="ready-status">Ждем готовности игроков...</p>
         </div>
 
