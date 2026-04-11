@@ -8,7 +8,7 @@ let peerIdFromUrl = urlParams.get('peer');
 const peer = new Peer();
 let conn;
 
-let myNickname = "";
+let myNickname = "Я";
 let oppNickname = "Соперник";
 let isGameStarted = false;
 
@@ -32,10 +32,10 @@ peer.on('open', (id) => {
     if (!peerIdFromUrl) {
         setupScreen.innerHTML = `
             <h1>GeoDuel 1v1</h1>
-            <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12">
+            <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12" autocomplete="off">
             <div class="url-box">${gameUrl}</div>
             <button id="btn-copy" class="menu-btn">СКОПИРОВАТЬ ССЫЛКУ</button>
-            <button id="btn-start" class="menu-btn" style="background:transparent; border:1px solid #444; color:#777; margin-top:15px;">ПЕРЕЙТИ К ИГРЕ</button>
+            <button id="btn-start" class="menu-btn secondary-btn">ПЕРЕЙТИ К ИГРЕ</button>
         `;
         document.getElementById('btn-copy').onclick = () => {
             navigator.clipboard.writeText(gameUrl);
@@ -52,8 +52,8 @@ peer.on('open', (id) => {
     } else {
         setupScreen.innerHTML = `
             <h1>GeoDuel 1v1</h1>
-            <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12">
-            <button id="btn-join" class="menu-btn" style="margin-top:15px;">ПРИСОЕДИНИТЬСЯ</button>
+            <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12" autocomplete="off">
+            <button id="btn-join" class="menu-btn">ПРИСОЕДИНИТЬСЯ</button>
         `;
         document.getElementById('btn-join').onclick = () => {
             myNickname = document.getElementById('nick-input').value || "Гость";
@@ -74,18 +74,14 @@ function setupConnectionListeners(connection) {
     connection.on('open', () => {
         document.getElementById('main-game-container').style.display = 'flex';
         setupScreen.style.display = 'none';
-
-        if (isGameStarted) {
-            connection.send({ type: 'init-name', name: myNickname });
-        }
+        if (isGameStarted) connection.send({ type: 'init-name', name: myNickname });
         
         connection.on('data', (data) => {
             if (data.type === 'init-name') {
                 oppNickname = data.name;
                 document.getElementById('name-opp').innerText = oppNickname;
-                if (!peerIdFromUrl && isGameStarted) {
-                    connection.send({ type: 'init-name', name: myNickname });
-                }
+                document.getElementById('status').innerText = "Соперник подключился!";
+                if (!peerIdFromUrl && isGameStarted) { connection.send({ type: 'init-name', name: myNickname }); }
             }
             if (data.type === 'ready') { oppIsReady = true; checkStartRound(); }
             if (data.type === 'answer') { 
@@ -102,21 +98,32 @@ window.setReady = function() {
     if (iAmReady) return;
     iAmReady = true;
     document.getElementById('ready-btn').disabled = true;
-    document.getElementById('ready-status').innerText = "Ожидание соперника...";
+    document.getElementById('ready-status').innerText = "Ждем готовности игроков...";
     if (conn && conn.open) conn.send({ type: 'ready' });
     checkStartRound();
 };
 
 function checkStartRound() {
     if (iAmReady && oppIsReady) {
-        document.getElementById('prep-screen').style.display = 'none';
-        document.getElementById('game-grid').style.display = 'grid';
-        loadRound();
+        // Логика затухания: сначала тушим карту
+        const prepScreen = document.getElementById('prep-screen');
+        const gameGrid = document.getElementById('game-grid');
+
+        prepScreen.classList.remove('active');
+        
+        // Через полсекунды, когда карта затухла, скрываем её и показываем карточки
+        setTimeout(() => {
+            prepScreen.style.display = 'none'; // Теперь сработает, потому что в CSS нет !important
+            gameGrid.style.display = 'grid';
+            loadRound();
+            gameGrid.classList.add('active');
+        }, 500);
     }
 }
 
 function loadRound() {
     hasAnswered = false; oppHasAnswered = false; timeLeft = 90;
+    document.getElementById('status').innerText = "Твой ход!";
     document.getElementById('game-grid').style.pointerEvents = 'auto';
     document.querySelectorAll('.option').forEach(opt => opt.className = 'option');
     const round = gameData[currentRound];
@@ -149,7 +156,7 @@ function sendChoice(index) {
     }
     revealAnswers(index, correctIndex);
     if (conn && conn.open) conn.send({ type: 'answer', choice: index });
-    document.getElementById('status').innerText = "Ждем соперника...";
+    document.getElementById('status').innerText = "Ждем ответ соперника...";
     checkRoundEnd();
 }
 
@@ -172,11 +179,22 @@ function checkRoundEnd() {
             if (currentRound < gameData.length) {
                 iAmReady = false; oppIsReady = false;
                 document.getElementById('ready-btn').disabled = false;
-                document.getElementById('prep-screen').style.display = 'flex';
-                document.getElementById('game-grid').style.display = 'none';
-                document.getElementById('map-preview').src = gameData[currentRound].map;
-                document.getElementById('ready-status').innerText = "Ждем готовности...";
-                document.getElementById('status').innerText = "Ожидание...";
+                
+                // Переход затухания для следующего раунда
+                const prepScreen = document.getElementById('prep-screen');
+                const gameGrid = document.getElementById('game-grid');
+                
+                gameGrid.classList.remove('active');
+                
+                setTimeout(() => {
+                    gameGrid.style.display = 'none';
+                    document.getElementById('map-preview').src = gameData[currentRound].map;
+                    prepScreen.style.display = 'flex';
+                    prepScreen.classList.add('active');
+                    document.getElementById('ready-status').innerText = "Ждем готовности игроков...";
+                    document.getElementById('status').innerText = "Ожидание...";
+                }, 500);
+
             } else {
                 alert(`ФИНАЛ!\n${myNickname}: ${myScore}\n${oppNickname}: ${oppScore}`);
                 location.reload();
