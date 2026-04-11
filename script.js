@@ -20,6 +20,7 @@ let oppHasAnswered = false;
 let timer;
 let timeLeft = 90;
 
+// Создаем оверлей программно
 const setupScreen = document.createElement('div');
 setupScreen.id = "setup-overlay";
 
@@ -28,24 +29,26 @@ peer.on('open', (id) => {
     const gameUrl = window.location.origin + window.location.pathname + '?peer=' + id;
 
     if (!peerIdFromUrl) {
+        // ЭКРАН ХОСТА
         setupScreen.innerHTML = `
             <h1>GeoDuel 1v1</h1>
             <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12">
             <div class="url-box">${gameUrl}</div>
             <button id="btn-copy" class="menu-btn">СКОПИРОВАТЬ ССЫЛКУ</button>
-            <button id="btn-start" class="menu-btn">ПЕРЕЙТИ К ИГРЕ</button>
+            <button id="btn-start" class="menu-btn secondary-btn">ПЕРЕЙТИ К ИГРЕ</button>
         `;
         document.getElementById('btn-copy').onclick = () => {
             navigator.clipboard.writeText(gameUrl);
-            document.getElementById('btn-copy').innerText = "ССЫЛКА СКОПИРОВАНА!";
+            document.getElementById('btn-copy').innerText = "ССЫЛКА В БУФЕРЕ!";
         };
         document.getElementById('btn-start').onclick = () => {
             myNickname = document.getElementById('nick-input').value || "Хост";
             document.getElementById('name-me').innerText = myNickname;
-            setupScreen.style.display = 'none';
-            document.getElementById('main-game-container').style.display = 'block';
+            setupScreen.style.display = 'none'; // Скрываем оверлей
+            document.getElementById('main-game-container').style.display = 'flex'; // Показываем игру
         };
     } else {
+        // ЭКРАН ГОСТЯ
         setupScreen.innerHTML = `
             <h1>GeoDuel 1v1</h1>
             <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12">
@@ -60,16 +63,11 @@ peer.on('open', (id) => {
     }
 });
 
-peer.on('connection', (c) => {
-    conn = c;
-    setupConnection();
-});
-
 function setupConnection() {
     conn.on('open', () => {
         conn.send({ type: 'init-name', name: myNickname });
-        document.getElementById('main-game-container').style.display = 'block';
-        if (document.getElementById('setup-overlay')) setupScreen.remove();
+        document.getElementById('main-game-container').style.display = 'flex';
+        setupScreen.style.display = 'none';
 
         conn.on('data', (data) => {
             if (data.type === 'init-name') {
@@ -140,7 +138,7 @@ function sendChoice(index) {
     }
     revealAnswers(index, correctIndex);
     if (conn && conn.open) conn.send({ type: 'answer', choice: index });
-    document.getElementById('status').innerText = "Ждем соперника...";
+    document.getElementById('status').innerText = "Ждем ответ соперника...";
     checkRoundEnd();
 }
 
