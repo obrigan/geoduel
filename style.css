@@ -50,7 +50,8 @@ body {
 /* ИГРОВОЙ ИНТЕРФЕЙС */
 #main-game-container {
     width: 100%; max-width: 1300px;
-    display: flex !important; flex-direction: column !important;
+    display: none; /* Скрыто изначально */
+    flex-direction: column !important; /* Оставляем фикс колонки */
     align-items: center; padding: 20px; box-sizing: border-box;
 }
 
@@ -66,34 +67,29 @@ body {
 #name-me { color: #2ecc71; font-weight: bold; text-align: right; font-size: 24px; }
 #name-opp { color: #ff4d4d; font-weight: bold; text-align: left; font-size: 24px; }
 #score-board { background: #000; padding: 5px 20px; border-radius: 30px; font-size: 28px; font-family: monospace;}
-#status { color: #aaa; margin-top: 10px; font-size: 16px; }
 
-/* КАРТА */
-.prep-container { display: flex !important; flex-direction: column !important; align-items: center; width: 100%; gap: 15px; }
-.prep-container h2 { width: 100%; text-align: center; margin: 10px 0; }
+/* ЭКРАН ПОДГОТОВКИ (КАРТА) */
+.prep-container { 
+    display: flex; 
+    flex-direction: column !important; 
+    align-items: center; 
+    width: 100%; 
+    gap: 15px; 
+}
+
 #map-preview { height: 65vh; max-width: 95vw; border-radius: 20px; border: 2px solid #333; object-fit: contain; }
 
-/* КНОПКА ГОТОВ (ВОССТАНОВИЛ АНИМАЦИЮ) */
+/* КНОПКА ГОТОВ */
 #ready-btn {
     background: #2ecc71; color: white; border: none; padding: 18px 80px;
     border-radius: 15px; font-size: 26px; font-weight: bold; cursor: pointer; 
-    margin-top: 20px; min-width: 250px;
-    transition: all 0.3s ease; /* Плавность вернулась */
+    margin-top: 20px; min-width: 250px; transition: all 0.3s ease;
 }
 
-#ready-btn:hover:not(:disabled) {
-    transform: scale(1.05);
-    background: #27ae60;
-    box-shadow: 0 0 20px rgba(46, 204, 113, 0.4);
-}
+#ready-btn:hover:not(:disabled) { transform: scale(1.05); background: #27ae60; box-shadow: 0 0 20px rgba(46, 204, 113, 0.4); }
+#ready-btn:disabled { opacity: 0.4; cursor: default; }
 
-#ready-btn:disabled {
-    opacity: 0.4;
-    cursor: default;
-    filter: grayscale(30%); /* Визуально гасим кнопку */
-}
-
-/* КАРТОЧКИ */
+/* СЕТКА ИГРЫ */
 #game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; width: 100%; max-width: 1250px; }
 .option { border-radius: 20px; overflow: hidden; transition: 0.3s; border: 8px solid transparent; cursor: pointer; background: #1a1a1a; }
 .option:hover { transform: translateY(-10px); box-shadow: 0 15px 30px rgba(0,0,0,0.6); z-index: 5; }
