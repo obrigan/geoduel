@@ -30,16 +30,13 @@ body {
     margin-bottom: 20px; width: 300px; outline: none; transition: 0.3s;
 }
 
-#nick-input:focus { border-color: #2ecc71; }
-
 .menu-btn {
     padding: 16px 40px; background: #2ecc71; border: none; color: white;
     border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 18px;
-    width: 350px; transition: all 0.3s ease; margin-bottom: 10px;
+    width: 350px; transition: 0.3s; margin-bottom: 10px;
 }
 
-.menu-btn:hover { background: #27ae60; transform: scale(1.02); box-shadow: 0 0 15px rgba(46,204,113,0.4); }
-.secondary-btn { background: transparent; border: 1px solid #444; color: #666; }
+.menu-btn:hover { transform: scale(1.02); background: #27ae60; }
 
 .url-box {
     background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px;
@@ -51,7 +48,7 @@ body {
 #main-game-container {
     width: 100%; max-width: 1300px;
     display: none; /* Скрыто изначально */
-    flex-direction: column !important; /* Оставляем фикс колонки */
+    flex-direction: column !important;
     align-items: center; padding: 20px; box-sizing: border-box;
 }
 
@@ -64,32 +61,31 @@ body {
     padding: 12px 40px; border-radius: 60px; margin-top: 15px; min-width: 450px;
 }
 
-#name-me { color: #2ecc71; font-weight: bold; text-align: right; font-size: 24px; }
-#name-opp { color: #ff4d4d; font-weight: bold; text-align: left; font-size: 24px; }
-#score-board { background: #000; padding: 5px 20px; border-radius: 30px; font-size: 28px; font-family: monospace;}
+/* ЦВЕТА НИКОВ */
+#name-me { color: #2ecc71 !important; font-weight: bold; text-align: right; font-size: 24px; }
+#name-opp { color: #ff4d4d !important; font-weight: bold; text-align: left; font-size: 24px; }
+#score-board { background: #000; padding: 5px 20px; border-radius: 30px; font-size: 28px; font-family: monospace; }
 
-/* ЭКРАН ПОДГОТОВКИ (КАРТА) */
-.prep-container { 
-    display: flex; 
-    flex-direction: column !important; 
-    align-items: center; 
-    width: 100%; 
-    gap: 15px; 
-}
-
+/* КАРТА */
+.prep-container { display: flex !important; flex-direction: column !important; align-items: center; width: 100%; gap: 15px; }
 #map-preview { height: 65vh; max-width: 95vw; border-radius: 20px; border: 2px solid #333; object-fit: contain; }
 
-/* КНОПКА ГОТОВ */
+/* КНОПКА ГОТОВ С АНИМАЦИЕЙ */
 #ready-btn {
     background: #2ecc71; color: white; border: none; padding: 18px 80px;
     border-radius: 15px; font-size: 26px; font-weight: bold; cursor: pointer; 
     margin-top: 20px; min-width: 250px; transition: all 0.3s ease;
 }
 
-#ready-btn:hover:not(:disabled) { transform: scale(1.05); background: #27ae60; box-shadow: 0 0 20px rgba(46, 204, 113, 0.4); }
+#ready-btn:hover:not(:disabled) {
+    transform: scale(1.05);
+    background: #27ae60;
+    box-shadow: 0 0 20px rgba(46, 204, 113, 0.4);
+}
+
 #ready-btn:disabled { opacity: 0.4; cursor: default; }
 
-/* СЕТКА ИГРЫ */
+/* КАРТОЧКИ ИГРЫ */
 #game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; width: 100%; max-width: 1250px; }
 .option { border-radius: 20px; overflow: hidden; transition: 0.3s; border: 8px solid transparent; cursor: pointer; background: #1a1a1a; }
 .option:hover { transform: translateY(-10px); box-shadow: 0 15px 30px rgba(0,0,0,0.6); z-index: 5; }
