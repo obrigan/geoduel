@@ -98,7 +98,7 @@ window.setReady = function() {
     if (iAmReady) return;
     iAmReady = true;
     document.getElementById('ready-btn').disabled = true;
-    document.getElementById('ready-status').innerText = "Ждем готовности...";
+    document.getElementById('ready-status').innerText = "Ты готов! Ждем соперника...";
     if (conn && conn.open) conn.send({ type: 'ready' });
     checkStartRound();
 };
@@ -123,6 +123,7 @@ function loadRound() {
     document.getElementById('game-grid').style.pointerEvents = 'auto';
     document.querySelectorAll('.option').forEach(opt => opt.className = 'option');
     const round = gameData[currentRound];
+    // Обновляем текст в начале раунда
     document.getElementById('round-num').innerText = currentRound + 1;
     document.getElementById('map-preview').src = round.map;
     for (let i = 0; i < 4; i++) {
@@ -152,7 +153,7 @@ function sendChoice(index) {
     }
     revealAnswers(index, correctIndex);
     if (conn && conn.open) conn.send({ type: 'answer', choice: index });
-    document.getElementById('status').innerText = "Ждем соперника...";
+    document.getElementById('status').innerText = "Ждем ответ соперника...";
     checkRoundEnd();
 }
 
@@ -175,17 +176,22 @@ function checkRoundEnd() {
             if (currentRound < gameData.length) {
                 iAmReady = false; oppIsReady = false;
                 document.getElementById('ready-btn').disabled = false;
+                
                 const prepScreen = document.getElementById('prep-screen');
                 const gameGrid = document.getElementById('game-grid');
                 gameGrid.classList.remove('active');
+                
                 setTimeout(() => {
                     gameGrid.style.display = 'none';
-                    prepScreen.style.display = 'flex';
+                    // ОБНОВЛЯЕМ НОМЕР РАУНДА ТУТ
+                    document.getElementById('round-num').innerText = currentRound + 1;
                     document.getElementById('map-preview').src = gameData[currentRound].map;
+                    prepScreen.style.display = 'flex';
                     setTimeout(() => prepScreen.classList.add('active'), 50);
                     document.getElementById('ready-status').innerText = "Ждем готовности...";
                     document.getElementById('status').innerText = "Ожидание...";
                 }, 500);
+
             } else {
                 alert(`ФИНАЛ!\n${myNickname}: ${myScore}\n${oppNickname}: ${oppScore}`);
                 location.reload();
