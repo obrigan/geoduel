@@ -12,10 +12,10 @@ let myNickname = "Я";
 let oppNickname = "Соперник";
 let isGameStarted = false;
 
-// Состояния бустов
+// ПЕРЕМЕННЫЕ ПОДСКАЗОК
 let used5050 = false;
-let usedTime = false;
-let powerupUsedThisRound = false;
+let usedTimeBoost = false;
+let hintUsedThisRound = false;
 
 let currentRound = 0;
 let myScore = 0;
@@ -112,77 +112,79 @@ function checkStartRound() {
     if (iAmReady && oppIsReady) {
         const prepScreen = document.getElementById('prep-screen');
         const gameGrid = document.getElementById('game-grid');
+        const powerups = document.getElementById('powerups-panel');
+        
         prepScreen.classList.remove('active');
         setTimeout(() => {
             prepScreen.style.display = 'none';
             gameGrid.style.display = 'grid';
-            document.getElementById('powerups-panel').style.display = 'flex'; // Показываем бусты
+            powerups.style.display = 'flex';
             loadRound();
             setTimeout(() => gameGrid.classList.add('active'), 50);
         }, 500);
     }
 }
 
-// ЛОГИКА ПОДСКАЗОК
-window.updatePowerupUI = function() {
-    const btn5050 = document.getElementById('btn-5050');
-    const btnTime = document.getElementById('btn-time');
-
-    if (used5050 || powerupUsedThisRound || hasAnswered) btn5050.classList.add('powerup-disabled');
-    else btn5050.classList.remove('powerup-disabled');
-
-    if (usedTime || powerupUsedThisRound || hasAnswered) btnTime.classList.add('powerup-disabled');
-    else btnTime.classList.remove('powerup-disabled');
-};
-
+// ФУНКЦИИ ПОДСКАЗОК
 window.use5050 = function() {
-    if (used5050 || powerupUsedThisRound || hasAnswered) return;
+    if (used5050 || hintUsedThisRound || hasAnswered) return;
+    
     used5050 = true;
-    powerupUsedThisRound = true;
+    hintUsedThisRound = true;
     updatePowerupUI();
 
-    const correctIndex = gameData[currentRound].correct;
-    // Оставляем только неверные индексы, перемешиваем и берем 2 из них на удаление
-    let wrongIndices = [0, 1, 2, 3].filter(i => i !== correctIndex);
+    const correct = gameData[currentRound].correct;
+    let wrongIndices = [0, 1, 2, 3].filter(i => i !== correct);
+    
+    // Перемешиваем и берем 2
     wrongIndices.sort(() => Math.random() - 0.5);
-    const toEliminate = wrongIndices.slice(0, 2);
+    const toRemove = wrongIndices.slice(0, 2);
 
-    const options = document.querySelectorAll('.option');
-    toEliminate.forEach(index => {
-        options[index].classList.add('dimmed', 'eliminated');
+    toRemove.forEach(idx => {
+        const opt = document.querySelectorAll('.option')[idx];
+        opt.classList.add('eliminated');
     });
 };
 
-window.useTime = function() {
-    if (usedTime || powerupUsedThisRound || hasAnswered) return;
-    usedTime = true;
-    powerupUsedThisRound = true;
+window.useTimeBoost = function() {
+    if (usedTimeBoost || hintUsedThisRound || hasAnswered) return;
+
+    usedTimeBoost = true;
+    hintUsedThisRound = true;
     updatePowerupUI();
 
     timeLeft += 30;
     document.getElementById('timer-val').innerText = timeLeft;
     
-    // Эффект добавления времени
-    const timerHeader = document.getElementById('timer-header');
-    timerHeader.style.color = '#3498db';
-    timerHeader.style.transform = 'scale(1.2)';
-    setTimeout(() => {
-        timerHeader.style.color = '#e74c3c';
-        timerHeader.style.transform = 'scale(1)';
-    }, 500);
+    // Визуальный эффект
+    document.getElementById('timer-header').style.color = '#3498db';
+    setTimeout(() => document.getElementById('timer-header').style.color = '#e74c3c', 1000);
 };
 
+function updatePowerupUI() {
+    const btn50 = document.getElementById('btn-5050');
+    const btnTime = document.getElementById('btn-time');
+
+    if (used5050 || hintUsedThisRound || hasAnswered) btn50.classList.add('disabled');
+    else btn50.classList.remove('disabled');
+
+    if (usedTimeBoost || hintUsedThisRound || hasAnswered) btnTime.classList.add('disabled');
+    else btnTime.classList.remove('disabled');
+}
+
 function loadRound() {
-    hasAnswered = false; oppHasAnswered = false; timeLeft = 90;
-    powerupUsedThisRound = false; // Сбрасываем ограничение "одна на раунд"
-    
+    hasAnswered = false; 
+    oppHasAnswered = false; 
+    timeLeft = 90;
+    hintUsedThisRound = false; // Сброс на раунд
+
     document.getElementById('status').innerText = "Твой ход!";
     document.getElementById('game-grid').style.pointerEvents = 'auto';
     
-    // Снимаем затемнения с прошлого раунда
-    document.querySelectorAll('.option').forEach(opt => opt.className = 'option');
+    const options = document.querySelectorAll('.option');
+    options.forEach(opt => opt.className = 'option');
     
-    updatePowerupUI(); // Обновляем визуал кнопок
+    updatePowerupUI();
 
     const round = gameData[currentRound];
     document.getElementById('round-num').innerText = currentRound + 1;
@@ -204,13 +206,10 @@ function startTimer() {
 
 function sendChoice(index) {
     if (hasAnswered) return;
-    // Блокируем клик по убранной 50/50 карточке
-    if (index !== -1 && document.querySelectorAll('.option')[index].classList.contains('eliminated')) return;
-    
     hasAnswered = true;
     clearInterval(timer);
     document.getElementById('game-grid').style.pointerEvents = 'none';
-    updatePowerupUI(); // Гасим кнопки бустов
+    updatePowerupUI(); // Отключаем кнопки после ответа
 
     const correctIndex = gameData[currentRound].correct;
     if (index === correctIndex) {
@@ -219,7 +218,7 @@ function sendChoice(index) {
     }
     revealAnswers(index, correctIndex);
     if (conn && conn.open) conn.send({ type: 'answer', choice: index });
-    document.getElementById('status').innerText = "Ждем ответ соперника...";
+    document.getElementById('status').innerText = "Ждем ответ...";
     checkRoundEnd();
 }
 
@@ -240,13 +239,15 @@ function checkRoundEnd() {
         setTimeout(() => {
             currentRound++;
             const gameGrid = document.getElementById('game-grid');
+            const powerups = document.getElementById('powerups-panel');
+
             if (currentRound < gameData.length) {
                 iAmReady = false; oppIsReady = false;
                 document.getElementById('ready-btn').disabled = false;
                 const prepScreen = document.getElementById('prep-screen');
                 
                 gameGrid.classList.remove('active');
-                document.getElementById('powerups-panel').style.display = 'none'; // Прячем бусты
+                powerups.style.display = 'none';
 
                 setTimeout(() => {
                     gameGrid.style.display = 'none';
@@ -259,7 +260,7 @@ function checkRoundEnd() {
                 }, 500);
             } else {
                 gameGrid.classList.remove('active');
-                document.getElementById('powerups-panel').style.display = 'none'; // Прячем бусты
+                powerups.style.display = 'none';
                 setTimeout(() => {
                     gameGrid.style.display = 'none';
                     showResults();
