@@ -33,7 +33,7 @@ peer.on('open', (id) => {
             <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12">
             <div class="url-box">${gameUrl}</div>
             <button id="btn-copy" class="menu-btn">СКОПИРОВАТЬ ССЫЛКУ</button>
-            <button id="btn-start" class="menu-btn secondary-btn">ПЕРЕЙТИ К ИГРЕ</button>
+            <button id="btn-start" class="menu-btn">ПЕРЕЙТИ К ИГРЕ</button>
         `;
         document.getElementById('btn-copy').onclick = () => {
             navigator.clipboard.writeText(gameUrl);
@@ -82,7 +82,7 @@ function setupConnection() {
                 oppHasAnswered = true; 
                 if (data.choice === gameData[currentRound].correct) oppScore++;
                 document.getElementById('score-opp').innerText = oppScore;
-                checkRoundEnd();
+                checkRoundEnd(); 
             }
         });
     });
@@ -91,8 +91,8 @@ function setupConnection() {
 window.setReady = function() {
     if (iAmReady) return;
     iAmReady = true;
-    const btn = document.getElementById('ready-btn');
-    btn.disabled = true; btn.style.opacity = "0.5";
+    document.getElementById('ready-btn').disabled = true;
+    document.getElementById('ready-btn').style.opacity = "0.5";
     document.getElementById('ready-status').innerText = "Ждем соперника...";
     if (conn && conn.open) conn.send({ type: 'ready' });
     checkStartRound();
@@ -140,7 +140,7 @@ function sendChoice(index) {
     }
     revealAnswers(index, correctIndex);
     if (conn && conn.open) conn.send({ type: 'answer', choice: index });
-    document.getElementById('status').innerText = "Ожидание хода соперника...";
+    document.getElementById('status').innerText = "Ждем соперника...";
     checkRoundEnd();
 }
 
@@ -162,8 +162,8 @@ function checkRoundEnd() {
             currentRound++;
             if (currentRound < gameData.length) {
                 iAmReady = false; oppIsReady = false;
-                const btn = document.getElementById('ready-btn');
-                btn.disabled = false; btn.style.opacity = "1";
+                document.getElementById('ready-btn').disabled = false;
+                document.getElementById('ready-btn').style.opacity = "1";
                 document.getElementById('prep-screen').style.display = 'flex';
                 document.getElementById('game-grid').style.display = 'none';
                 document.getElementById('map-preview').src = gameData[currentRound].map;
