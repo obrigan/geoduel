@@ -121,7 +121,7 @@ body {
 #ready-btn {
     background: #2ecc71; color: white; border: none; padding: 18px 80px;
     border-radius: 15px; font-size: 26px; font-weight: bold; cursor: pointer; 
-    margin-top: 10px; transition: all 0.2s;
+    margin-top: 10px; min-width: 250px; transition: all 0.2s;
 }
 
 #ready-btn:hover:not(:disabled) { background: #27ae60; transform: scale(1.05); box-shadow: 0 0 20px rgba(46, 204, 113, 0.4); }
@@ -141,6 +141,53 @@ body {
 .option:hover { transform: translateY(-10px) scale(1.02); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8); z-index: 10; }
 .option img { width: 100%; height: 480px; object-fit: cover; display: block; }
 
+/* ФИНАЛЬНЫЙ ЭКРАН */
+.winner-display {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    margin: 20px 0;
+}
+
+.winner-circle {
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    background: #111;
+    border: 8px solid transparent; /* Изначально прозрачная */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 50px rgba(0,0,0,0.8);
+    overflow: hidden;
+    transition: 0.3s;
+}
+
+#winner-name {
+    font-size: 32px;
+    font-weight: bold;
+    text-transform: uppercase;
+    text-align: center;
+    color: white;
+}
+
+.trophy-icon {
+    font-size: 100px;
+    filter: drop-shadow(0 0 20px rgba(241, 196, 15, 0.5)); /* Золотое свечение кубков */
+}
+
+/* СТИЛИ КРУГОВ: У обоих зеленый для победителя */
+.winner-circle.winner-active {
+    border-color: #2ecc71 !important; /* Зеленая рамка победителя всегда */
+    box-shadow: 0 0 40px rgba(46, 204, 113, 0.5) !important;
+}
+
+/* СТИЛЬ КРУГА ДЛЯ НИЧЬЕЙ */
+.winner-circle.tie {
+    border-color: #f1c40f !important; /* Золотая рамка для ничьей */
+    box-shadow: 0 0 40px rgba(241, 196, 15, 0.5) !important;
+}
+
 /* АНИМАЦИИ ВЫБОРА */
 .dimmed { opacity: 0.25; filter: grayscale(100%) blur(2px); }
 .correct-choice { border-color: #2ecc71 !important; box-shadow: 0 0 50px rgba(46, 204, 113, 0.6) !important; animation: pop 0.5s ease forwards; }
@@ -153,60 +200,7 @@ body {
     #game-grid { grid-template-columns: 1fr; }
     .option img { height: 280px; }
     #map-preview { height: 50vh; }
-}
-/* ... (весь старый код остается) ... */
-
-/* СТИЛИ ДЛЯ ФИНАЛЬНОЙ СТРАНИЦЫ */
-#results-screen {
-    gap: 0;
-    justify-content: center;
-}
-
-.winner-display {
-    display: flex;
-    align-items: center;
-    gap: 30px;
-    margin: 20px 0;
-}
-
-/* Красивый кружок для ника */
-.winner-circle {
-    width: 250px;
-    height: 250px;
-    border-radius: 50%;
-    background: #111;
-    border: 8px solid transparent; /* Цвет рамки включит JS (зеленый или красный) */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 50px rgba(0,0,0,0.8);
-    overflow: hidden;
-}
-
-#winner-name {
-    font-size: 36px;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    max-width: 90%;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-}
-
-/* Стиль для кубка */
-.trophy-icon {
-    font-size: 100px;
-    text-shadow: 0 0 30px rgba(241, 196, 15, 0.4); /* Золотое свечение */
-}
-
-/* Неоновая подсветка для победителя (включит JS) */
-.winner-circle.winner-me {
-    border-color: #2ecc71;
-    box-shadow: 0 0 40px rgba(46, 204, 113, 0.5);
-}
-
-.winner-circle.winner-opp {
-    border-color: #ff4d4d;
-    box-shadow: 0 0 40px rgba(231, 76, 60, 0.5);
+    .winner-circle { width: 180px; height: 180px; }
+    #winner-name { font-size: 24px; }
+    .trophy-icon { font-size: 60px; }
 }
