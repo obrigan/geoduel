@@ -98,25 +98,21 @@ window.setReady = function() {
     if (iAmReady) return;
     iAmReady = true;
     document.getElementById('ready-btn').disabled = true;
-    document.getElementById('ready-status').innerText = "Ждем готовности игроков...";
+    document.getElementById('ready-status').innerText = "Ждем готовности...";
     if (conn && conn.open) conn.send({ type: 'ready' });
     checkStartRound();
 };
 
 function checkStartRound() {
     if (iAmReady && oppIsReady) {
-        // Логика затухания: сначала тушим карту
         const prepScreen = document.getElementById('prep-screen');
         const gameGrid = document.getElementById('game-grid');
-
         prepScreen.classList.remove('active');
-        
-        // Через полсекунды, когда карта затухла, скрываем её и показываем карточки
         setTimeout(() => {
-            prepScreen.style.display = 'none'; // Теперь сработает, потому что в CSS нет !important
+            prepScreen.style.display = 'none';
             gameGrid.style.display = 'grid';
             loadRound();
-            gameGrid.classList.add('active');
+            setTimeout(() => gameGrid.classList.add('active'), 50);
         }, 500);
     }
 }
@@ -156,7 +152,7 @@ function sendChoice(index) {
     }
     revealAnswers(index, correctIndex);
     if (conn && conn.open) conn.send({ type: 'answer', choice: index });
-    document.getElementById('status').innerText = "Ждем ответ соперника...";
+    document.getElementById('status').innerText = "Ждем соперника...";
     checkRoundEnd();
 }
 
@@ -179,22 +175,17 @@ function checkRoundEnd() {
             if (currentRound < gameData.length) {
                 iAmReady = false; oppIsReady = false;
                 document.getElementById('ready-btn').disabled = false;
-                
-                // Переход затухания для следующего раунда
                 const prepScreen = document.getElementById('prep-screen');
                 const gameGrid = document.getElementById('game-grid');
-                
                 gameGrid.classList.remove('active');
-                
                 setTimeout(() => {
                     gameGrid.style.display = 'none';
-                    document.getElementById('map-preview').src = gameData[currentRound].map;
                     prepScreen.style.display = 'flex';
-                    prepScreen.classList.add('active');
-                    document.getElementById('ready-status').innerText = "Ждем готовности игроков...";
+                    document.getElementById('map-preview').src = gameData[currentRound].map;
+                    setTimeout(() => prepScreen.classList.add('active'), 50);
+                    document.getElementById('ready-status').innerText = "Ждем готовности...";
                     document.getElementById('status').innerText = "Ожидание...";
                 }, 500);
-
             } else {
                 alert(`ФИНАЛ!\n${myNickname}: ${myScore}\n${oppNickname}: ${oppScore}`);
                 location.reload();
