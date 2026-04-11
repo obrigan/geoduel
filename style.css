@@ -1,7 +1,7 @@
 body {
     background-color: #0b0b0b;
     color: white;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Segoe UI', sans-serif;
     margin: 0;
     display: flex;
     flex-direction: column;
@@ -9,120 +9,80 @@ body {
     min-height: 100vh;
 }
 
-#main-game-container {
-    width: 100%;
-    max-width: 1300px;
-    display: flex !important;
-    flex-direction: column !important; /* Только колонка! */
-    align-items: center;
-    padding: 20px;
-    box-sizing: border-box;
-}
-
-/* ВЕРХНЯЯ ПАНЕЛЬ */
-#ui-layer {
+/* СТАРТОВЫЙ ЭКРАН - ТЕПЕРЬ ОН ПЕРЕКРЫВАЕТ ВСЁ */
+#setup-overlay {
+    position: fixed !important;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle at center, #1a1a1a 0%, #0f0f0f 100%) !important;
+    z-index: 999999 !important; /* Максимальный приоритет */
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     text-align: center;
-    width: 100%;
-    margin-bottom: 20px;
 }
 
-#timer-header { color: #e74c3c; font-size: 42px; margin: 0; font-weight: bold; }
+#setup-overlay h1 { font-size: 56px; color: #2ecc71; margin-bottom: 20px; }
 
-#game-info {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+#nick-input {
+    background: #151515; border: 2px solid #333; padding: 15px;
+    border-radius: 12px; color: white; font-size: 22px; text-align: center;
+    margin-bottom: 20px; width: 300px; outline: none;
+}
+
+.menu-btn {
+    padding: 16px 40px; background: #2ecc71; border: none; color: white;
+    border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 18px;
+    width: 350px; transition: 0.2s; margin-bottom: 10px;
+}
+
+.menu-btn:hover { background: #27ae60; transform: scale(1.02); }
+
+.secondary-btn { background: transparent; border: 1px solid #444; color: #666; }
+
+.url-box {
+    background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px;
+    font-family: monospace; font-size: 12px; color: #555; margin-bottom: 20px;
+    width: 330px; word-break: break-all;
+}
+
+/* ИГРОВОЙ ИНТЕРФЕЙС */
+#main-game-container {
+    width: 100%;
+    max-width: 1300px;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 20px;
-    background: rgba(255,255,255,0.05);
-    padding: 12px 40px;
-    border-radius: 60px;
-    border: 1px solid rgba(255,255,255,0.1);
-    margin-top: 15px;
-    min-width: 450px;
+    padding: 20px;
 }
 
-#name-me { color: #2ecc71 !important; font-weight: bold; text-align: right; font-size: 24px; }
-#name-opp { color: #ff4d4d !important; font-weight: bold; text-align: left; font-size: 24px; }
-#score-board { background: #000; padding: 5px 20px; border-radius: 30px; font-family: monospace; font-size: 28px; }
-
-/* ЭКРАН ПОДГОТОВКИ (ГДЕ КАРТА) */
-.prep-container { 
-    display: flex !important; 
-    flex-direction: column !important; /* Только колонка! */
-    align-items: center; 
-    width: 100%;
-    gap: 15px;
+#ui-layer { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; }
+#timer-header { color: #e74c3c; font-size: 42px; margin: 0; }
+#game-info {
+    display: grid; grid-template-columns: 1fr auto 1fr;
+    align-items: center; gap: 20px; background: rgba(255,255,255,0.05);
+    padding: 12px 40px; border-radius: 60px; margin-top: 15px;
 }
 
-.prep-container h2 {
-    width: 100%;
-    text-align: center;
-    margin: 10px 0;
-}
+#name-me { color: #2ecc71; font-weight: bold; text-align: right; font-size: 24px; }
+#name-opp { color: #ff4d4d; font-weight: bold; text-align: left; font-size: 24px; }
+#score-board { background: #000; padding: 5px 20px; border-radius: 30px; font-size: 28px; }
 
-#map-preview {
-    height: 65vh;
-    width: auto;
-    max-width: 95vw;
-    border-radius: 20px;
-    box-shadow: 0 0 60px rgba(0,0,0,0.8);
-    border: 2px solid #333;
-    object-fit: contain;
-}
+/* КАРТА */
+.prep-container { display: flex; flex-direction: column; align-items: center; width: 100%; }
+#map-preview { height: 65vh; max-width: 95vw; border-radius: 20px; border: 2px solid #333; object-fit: contain; }
 
-/* КНОПКА ГОТОВ */
 #ready-btn {
-    background: #2ecc71;
-    color: white;
-    border: none;
-    padding: 18px 80px;
-    border-radius: 15px;
-    font-size: 26px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: 0.3s;
-    /* Фиксируем ширину, чтобы её не сплющило */
-    min-width: 250px; 
-    margin: 20px 0;
+    background: #2ecc71; color: white; border: none; padding: 18px 80px;
+    border-radius: 15px; font-size: 26px; font-weight: bold; cursor: pointer; margin-top: 20px;
 }
 
-#ready-btn:hover:not(:disabled) {
-    transform: scale(1.05);
-    background: #27ae60;
-}
-
-#ready-btn:disabled {
-    opacity: 0.5;
-    cursor: default;
-}
-
-/* СЕТКА ИГРЫ */
-#game-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
-    width: 100%;
-    max-width: 1250px;
-}
-
-.option {
-    border-radius: 20px;
-    overflow: hidden;
-    transition: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-    border: 8px solid transparent;
-    cursor: pointer;
-}
-
-.option:hover {
-    transform: translateY(-10px);
-}
-
+/* КАРТОЧКИ */
+#game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; width: 100%; }
+.option { border-radius: 20px; overflow: hidden; transition: 0.3s; border: 8px solid transparent; cursor: pointer; }
+.option:hover { transform: translateY(-10px); }
 .option img { width: 100%; height: 480px; object-fit: cover; display: block; }
 
-/* ЭФФЕКТЫ */
 .dimmed { opacity: 0.25; filter: grayscale(100%) blur(2px); }
-.correct-choice { border-color: #2ecc71 !important; box-shadow: 0 0 50px rgba(46, 204, 113, 0.6) !important; }
-.wrong-choice { border-color: #ff4d4d !important; box-shadow: 0 0 50px rgba(231, 76, 60, 0.6) !important; }
+.correct-choice { border-color: #2ecc71 !important; box-shadow: 0 0 50px rgba(46, 204, 113, 0.6); }
+.wrong-choice { border-color: #ff4d4d !important; box-shadow: 0 0 50px rgba(231, 76, 60, 0.6); }
