@@ -12,15 +12,18 @@
     <div id="main-game-container" style="display: none;">
         <div id="ui-layer">
             <h1 id="timer-header">Время: <span id="timer-val">90</span></h1>
+            
             <div id="game-info">
-                Раунд: <span id="round-num">1</span>/2 | 
-                Счёт: <span id="score-me">0</span> - <span id="score-opp">0</span>
+                <span id="name-me">Я</span> 
+                <span id="score-board"><span id="score-me">0</span> : <span id="score-opp">0</span></span>
+                <span id="name-opp">Соперник</span>
             </div>
+            
             <div id="status">Ожидание...</div>
         </div>
 
         <div id="prep-screen" class="prep-container">
-            <h2 style="margin: 5px 0;">Где эта точка?</h2>
+            <h2 id="round-title">Раунд <span id="round-num">1</span>: Где эта точка?</h2>
             <div class="map-container">
                 <img id="map-preview" src="images/map1.jpg" alt="Карта">
             </div>
