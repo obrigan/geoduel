@@ -8,8 +8,10 @@ let peerIdFromUrl = urlParams.get('peer');
 const peer = new Peer();
 let conn;
 
-let myNickname = "Я";
+let myNickname = "";
 let oppNickname = "Соперник";
+let isGameStarted = false; // Флаг: нажал ли игрок кнопку старта
+
 let currentRound = 0;
 let myScore = 0;
 let oppScore = 0;
@@ -20,7 +22,6 @@ let oppHasAnswered = false;
 let timer;
 let timeLeft = 90;
 
-// Создаем оверлей программно
 const setupScreen = document.createElement('div');
 setupScreen.id = "setup-overlay";
 
@@ -29,7 +30,7 @@ peer.on('open', (id) => {
     const gameUrl = window.location.origin + window.location.pathname + '?peer=' + id;
 
     if (!peerIdFromUrl) {
-        // ЭКРАН ХОСТА
+        // ХОСТ
         setupScreen.innerHTML = `
             <h1>GeoDuel 1v1</h1>
             <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12">
@@ -44,11 +45,15 @@ peer.on('open', (id) => {
         document.getElementById('btn-start').onclick = () => {
             myNickname = document.getElementById('nick-input').value || "Хост";
             document.getElementById('name-me').innerText = myNickname;
-            setupScreen.style.display = 'none'; // Скрываем оверлей
-            document.getElementById('main-game-container').style.display = 'flex'; // Показываем игру
+            setupScreen.style.display = 'none';
+            document.getElementById('main-game-container').style.display = 'flex';
+            isGameStarted = true;
+            
+            // Если гость УЖЕ подключился, пока мы вводили ник, отправляем ему наше имя
+            if (conn && conn.open) conn.send({ type: 'init-name', name: myNickname });
         };
     } else {
-        // ЭКРАН ГОСТЯ
+        // ГОСТЬ
         setupScreen.innerHTML = `
             <h1>GeoDuel 1v1</h1>
             <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12">
@@ -57,23 +62,40 @@ peer.on('open', (id) => {
         document.getElementById('btn-join').onclick = () => {
             myNickname = document.getElementById('nick-input').value || "Гость";
             document.getElementById('name-me').innerText = myNickname;
+            setupScreen.style.display = 'none';
+            document.getElementById('main-game-container').style.display = 'flex';
+            isGameStarted = true;
+            
+            // Гость инициирует соединение после нажатия кнопки
             conn = peer.connect(peerIdFromUrl);
-            setupConnection();
+            setupConnectionListeners(conn);
         };
     }
 });
 
-function setupConnection() {
-    conn.on('open', () => {
-        conn.send({ type: 'init-name', name: myNickname });
-        document.getElementById('main-game-container').style.display = 'flex';
-        setupScreen.style.display = 'none';
+// Хост ждет входящего подключения
+peer.on('connection', (incomingConn) => {
+    conn = incomingConn;
+    setupConnectionListeners(conn);
+});
 
-        conn.on('data', (data) => {
+// Единая логика для приема данных
+function setupConnectionListeners(connection) {
+    connection.on('open', () => {
+        // Как только канал открыт, если мы уже нажали старт — шлем ник
+        if (isGameStarted) {
+            connection.send({ type: 'init-name', name: myNickname });
+        }
+        
+        connection.on('data', (data) => {
             if (data.type === 'init-name') {
                 oppNickname = data.name;
                 document.getElementById('name-opp').innerText = oppNickname;
-                if (!peerIdFromUrl) conn.send({ type: 'init-name', name: myNickname });
+                document.getElementById('status').innerText = "Соперник подключился!";
+                // Хост отвечает своим именем, если гость прислал первым
+                if (!peerIdFromUrl && isGameStarted) {
+                    connection.send({ type: 'init-name', name: myNickname });
+                }
             }
             if (data.type === 'ready') { oppIsReady = true; checkStartRound(); }
             if (data.type === 'answer') { 
@@ -89,9 +111,9 @@ function setupConnection() {
 window.setReady = function() {
     if (iAmReady) return;
     iAmReady = true;
-    document.getElementById('ready-btn').disabled = true;
-    document.getElementById('ready-btn').style.opacity = "0.5";
-    document.getElementById('ready-status').innerText = "Ждем соперника...";
+    const btn = document.getElementById('ready-btn');
+    btn.disabled = true;
+    document.getElementById('ready-status').innerText = "Ты готов! Ждем соперника...";
     if (conn && conn.open) conn.send({ type: 'ready' });
     checkStartRound();
 };
@@ -106,6 +128,7 @@ function checkStartRound() {
 
 function loadRound() {
     hasAnswered = false; oppHasAnswered = false; timeLeft = 90;
+    document.getElementById('status').innerText = "Твой ход!";
     document.getElementById('game-grid').style.pointerEvents = 'auto';
     document.querySelectorAll('.option').forEach(opt => opt.className = 'option');
     const round = gameData[currentRound];
@@ -160,12 +183,12 @@ function checkRoundEnd() {
             currentRound++;
             if (currentRound < gameData.length) {
                 iAmReady = false; oppIsReady = false;
-                document.getElementById('ready-btn').disabled = false;
-                document.getElementById('ready-btn').style.opacity = "1";
+                const btn = document.getElementById('ready-btn');
+                btn.disabled = false;
                 document.getElementById('prep-screen').style.display = 'flex';
                 document.getElementById('game-grid').style.display = 'none';
                 document.getElementById('map-preview').src = gameData[currentRound].map;
-                document.getElementById('ready-status').innerText = "Ждем готовности...";
+                document.getElementById('ready-status').innerText = "Ждем готовности игроков...";
                 document.getElementById('status').innerText = "Ожидание...";
             } else {
                 alert(`ФИНАЛ!\n${myNickname}: ${myScore}\n${oppNickname}: ${oppScore}`);
