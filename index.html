@@ -30,6 +30,17 @@
                 <p id="ready-status">Ждем готовности игроков...</p>
             </div>
 
+            <div id="powerups-panel" style="display: none;">
+                <div class="powerup-btn" id="btn-5050" onclick="use5050()" title="50/50 (Один раз за игру)">
+                    <span class="powerup-icon">🌗</span>
+                    <span class="powerup-text">50/50</span>
+                </div>
+                <div class="powerup-btn" id="btn-time" onclick="useTime()" title="+30 сек (Один раз за игру)">
+                    <span class="powerup-icon">⏱️</span>
+                    <span class="powerup-text">+30 СЕК</span>
+                </div>
+            </div>
+
             <div id="game-grid">
                 <div class="option" onclick="sendChoice(0)"><img id="img0" src=""></div>
                 <div class="option" onclick="sendChoice(1)"><img id="img1" src=""></div>
