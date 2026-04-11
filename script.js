@@ -5,7 +5,6 @@ const gameData = [
 
 const urlParams = new URLSearchParams(window.location.search);
 let peerIdFromUrl = urlParams.get('peer');
-
 const peer = new Peer();
 let conn;
 
@@ -19,38 +18,39 @@ let oppHasAnswered = false;
 let timer;
 let timeLeft = 90;
 
-// СТИЛИ ДЛЯ ССЫЛКИ (чтобы она была поверх всего)
-const linkEl = document.getElementById('room-link');
-linkEl.style.position = 'fixed';
-linkEl.style.top = '10px';
-linkEl.style.left = '50%';
-linkEl.style.transform = 'translateX(-50%)';
-linkEl.style.zIndex = '9999';
-linkEl.style.background = 'rgba(0,0,0,0.8)';
-linkEl.style.padding = '10px';
-linkEl.style.borderRadius = '5px';
-linkEl.style.color = '#00ff00';
-linkEl.style.border = '1px solid #00ff00';
-linkEl.style.fontSize = '14px';
+// Создаем "Экран ссылки", который перекроет ВООБЩЕ ВСЁ
+const overlay = document.createElement('div');
+overlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:black; color:white; z-index:10000; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-family:sans-serif; padding:20px;";
+overlay.innerHTML = `
+    <h2 style="color:#00ff00">РЕЖИМ СОЗДАНИЯ КОМНАТЫ</h2>
+    <p>Чтобы играть с другом, нажми на кнопку ниже и отправь ему ссылку:</p>
+    <button id="copy-link-btn" style="padding:15px 30px; font-size:18px; cursor:pointer; background:#00ff00; border:none; border-radius:5px; font-weight:bold;">СКОПИРОВАТЬ ССЫЛКУ</button>
+    <p id="copy-status" style="margin-top:15px; color:#aaa;"></p>
+    <button id="close-overlay" style="margin-top:30px; background:none; border:1px solid #555; color:#555; cursor:pointer;">Продолжить к игре (нажми после отправки)</button>
+`;
 
 peer.on('open', (id) => {
     if (!peerIdFromUrl) {
+        // Если мы хост — показываем оверлей со ссылкой
+        document.body.appendChild(overlay);
         const gameUrl = window.location.origin + window.location.pathname + '?peer=' + id;
         
-        linkEl.innerText = "КЛИКНИ ТУТ, ЧТОБЫ СКОПИРОВАТЬ ССЫЛКУ";
-        linkEl.style.cursor = 'pointer';
-        
-        linkEl.onclick = () => {
+        document.getElementById('copy-link-btn').onclick = () => {
             navigator.clipboard.writeText(gameUrl);
-            linkEl.innerText = "СКОПИРОВАНО! ОТПРАВЛЯЙ ДРУГУ";
-            setTimeout(() => { linkEl.innerText = "ССЫЛКА СКОПИРОВАНА"; }, 2000);
+            document.getElementById('copy-status').innerText = "ССЫЛКА СКОПИРОВАНА В БУФЕР!";
+            document.getElementById('copy-link-btn').innerText = "ГОТОВО!";
         };
 
-        console.log("Ссылка для друга:", gameUrl);
-        document.getElementById('status').innerText = "Скопируй ссылку вверху экрана и отправь другу!";
+        document.getElementById('close-overlay').onclick = () => {
+            overlay.style.display = 'none';
+        };
+        
+        // Дублируем в старое поле на всякий случай
+        document.getElementById('room-link').innerText = gameUrl;
     } else {
+        // Если мы гость — подключаемся
         conn = peer.connect(peerIdFromUrl);
-        linkEl.innerText = "ПОДКЛЮЧЕНИЕ К ХОСТУ...";
+        document.getElementById('status').innerText = "Подключаемся к другу...";
         setupConnection();
     }
 });
@@ -63,7 +63,7 @@ peer.on('connection', (c) => {
 function setupConnection() {
     conn.on('open', () => {
         document.getElementById('status').innerText = "Противник в сети! Жми ГОТОВ.";
-        linkEl.style.display = 'none'; // Скрываем ссылку, когда все в сборе
+        if (document.body.contains(overlay)) overlay.style.display = 'none';
         
         conn.on('data', (data) => {
             if (data.type === 'ready') { oppIsReady = true; checkStartRound(); }
@@ -75,7 +75,7 @@ function setupConnection() {
 function setReady() {
     iAmReady = true;
     document.getElementById('ready-btn').disabled = true;
-    document.getElementById('ready-status').innerText = "Ждем соперника...";
+    document.getElementById('ready-status').innerText = "Ждем готовности соперника...";
     if (conn) conn.send({ type: 'ready' });
     checkStartRound();
 }
