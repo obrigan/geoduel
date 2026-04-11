@@ -1,108 +1,172 @@
-body {
-    background-color: #0b0b0b;
-    color: white;
-    font-family: 'Segoe UI', sans-serif;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
+const gameData = [
+    { map: 'images/map1.jpg', correct: 0, images: ['images/r1_1.jpg', 'images/r1_2.jpg', 'images/r1_3.jpg', 'images/r1_4.jpg'] },
+    { map: 'images/map2.jpg', correct: 1, images: ['images/r2_1.jpg', 'images/r2_2.jpg', 'images/r2_3.jpg', 'images/r2_4.jpg'] }
+];
+
+const urlParams = new URLSearchParams(window.location.search);
+let peerIdFromUrl = urlParams.get('peer');
+const peer = new Peer();
+let conn;
+
+let currentRound = 0;
+let myScore = 0;
+let oppScore = 0;
+let iAmReady = false;
+let oppIsReady = false;
+let hasAnswered = false;
+let oppHasAnswered = false;
+let timer;
+let timeLeft = 90;
+
+// Оверлей для ссылки
+const setupScreen = document.createElement('div');
+setupScreen.id = "setup-overlay";
+
+peer.on('open', (id) => {
+    if (!peerIdFromUrl) {
+        document.body.appendChild(setupScreen);
+        const gameUrl = window.location.origin + window.location.pathname + '?peer=' + id;
+        setupScreen.innerHTML = `
+            <h1 style="color:#2ecc71; margin-bottom:10px;">GeoDuel 1v1</h1>
+            <p>Скопируй ссылку и отправь другу:</p>
+            <div style="background:#222; padding:15px; border-radius:8px; margin:20px; font-family:monospace; font-size:14px; border:1px solid #444; word-break:break-all; max-width:80%;">${gameUrl}</div>
+            <button id="btn-copy" style="padding:15px 30px; background:#2ecc71; border:none; color:white; border-radius:8px; cursor:pointer; font-weight:bold; font-size:16px;">СКОПИРОВАТЬ</button>
+            <button id="btn-start" style="margin-top:30px; background:none; border:1px solid #555; color:#777; cursor:pointer; border-radius:5px; padding:5px 15px;">Я отправил, к игре!</button>
+        `;
+
+        document.getElementById('btn-copy').onclick = () => {
+            navigator.clipboard.writeText(gameUrl);
+            document.getElementById('btn-copy').innerText = "СКОПИРОВАНО!";
+        };
+
+        document.getElementById('btn-start').onclick = () => {
+            setupScreen.remove();
+            document.getElementById('main-game-container').style.display = 'block';
+        };
+    } else {
+        conn = peer.connect(peerIdFromUrl);
+        setupConnection();
+    }
+});
+
+peer.on('connection', (c) => {
+    conn = c;
+    setupConnection();
+});
+
+function setupConnection() {
+    conn.on('open', () => {
+        document.getElementById('main-game-container').style.display = 'block';
+        if (document.getElementById('setup-overlay')) setupScreen.remove();
+        document.getElementById('status').innerText = "Соперник в сети!";
+        if (iAmReady) conn.send({ type: 'ready' });
+        
+        conn.on('data', (data) => {
+            if (data.type === 'ready') { oppIsReady = true; checkStartRound(); }
+            if (data.type === 'answer') { 
+                oppHasAnswered = true; 
+                if (data.choice === gameData[currentRound].correct) oppScore++;
+                document.getElementById('score-opp').innerText = oppScore;
+                checkRoundEnd(); 
+            }
+        });
+    });
 }
 
-#main-game-container {
-    width: 100%;
-    max-width: 1000px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+window.setReady = function() {
+    if (iAmReady) return;
+    iAmReady = true;
+    const btn = document.getElementById('ready-btn');
+    btn.disabled = true;
+    btn.style.opacity = "0.5";
+    document.getElementById('ready-status').innerText = "Ты готов! Ждем соперника...";
+    if (conn && conn.open) conn.send({ type: 'ready' });
+    checkStartRound();
+};
+
+function checkStartRound() {
+    if (iAmReady && oppIsReady) {
+        document.getElementById('prep-screen').style.display = 'none';
+        document.getElementById('game-grid').style.display = 'grid';
+        loadRound();
+    }
 }
 
-#ui-layer {
-    text-align: center;
-    margin-bottom: 20px;
+function loadRound() {
+    hasAnswered = false; oppHasAnswered = false; timeLeft = 90;
+    document.getElementById('game-grid').style.pointerEvents = 'auto';
+    
+    // Сброс анимаций
+    document.querySelectorAll('.option').forEach(opt => opt.className = 'option');
+
+    const round = gameData[currentRound];
+    document.getElementById('round-num').innerText = currentRound + 1;
+    document.getElementById('map-preview').src = round.map;
+    for (let i = 0; i < 4; i++) {
+        document.getElementById(`img${i}`).src = round.images[i];
+    }
+    startTimer();
 }
 
-#timer-header { color: #e74c3c; margin: 5px 0; font-size: 32px; }
-
-#game-info {
-    background: rgba(255,255,255,0.05);
-    padding: 10px 25px;
-    border-radius: 30px;
-    border: 1px solid rgba(255,255,255,0.1);
-    font-size: 18px;
+function startTimer() {
+    clearInterval(timer);
+    timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer-val').innerText = timeLeft;
+        if (timeLeft <= 0) { clearInterval(timer); if (!hasAnswered) sendChoice(-1); }
+    }, 1000);
 }
 
-.prep-container { display: flex; flex-direction: column; align-items: center; gap: 20px; }
-.map-container img { 
-    border-radius: 15px; 
-    box-shadow: 0 10px 40px rgba(0,0,0,0.6); 
-    border: 2px solid #333;
+function sendChoice(index) {
+    if (hasAnswered) return;
+    hasAnswered = true;
+    clearInterval(timer);
+    document.getElementById('game-grid').style.pointerEvents = 'none';
+
+    const correctIndex = gameData[currentRound].correct;
+    if (index === correctIndex) {
+        myScore++;
+        document.getElementById('score-me').innerText = myScore;
+    }
+
+    revealAnswers(index, correctIndex);
+
+    if (conn && conn.open) conn.send({ type: 'answer', choice: index });
+    document.getElementById('status').innerText = "Ждем ответ соперника...";
+    checkRoundEnd();
 }
 
-#game-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    width: 100%;
-    margin-top: 10px;
+function revealAnswers(myChoice, correctChoice) {
+    const options = document.querySelectorAll('.option');
+    options.forEach(opt => opt.classList.add('dimmed'));
+
+    options[correctChoice].classList.remove('dimmed');
+    options[correctChoice].classList.add('correct-choice');
+
+    if (myChoice !== correctChoice && myChoice !== -1) {
+        options[myChoice].classList.remove('dimmed');
+        options[myChoice].classList.add('wrong-choice');
+    }
 }
 
-.option {
-    position: relative;
-    cursor: pointer;
-    background: #1a1a1a;
-    border-radius: 15px;
-    overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    border: 6px solid transparent;
-}
-
-.option:hover { transform: scale(1.02); }
-.option img { width: 100%; height: 280px; object-fit: cover; display: block; }
-
-/* АНИМАЦИИ ОТВЕТОВ */
-
-.dimmed {
-    opacity: 0.3;
-    filter: grayscale(100%);
-    transform: scale(0.95);
-}
-
-.correct-choice {
-    border-color: #2ecc71 !important;
-    box-shadow: 0 0 40px rgba(46, 204, 113, 0.6);
-    z-index: 10;
-    animation: popCorrect 0.5s ease forwards;
-}
-
-.wrong-choice {
-    border-color: #e74c3c !important;
-    box-shadow: 0 0 40px rgba(231, 76, 60, 0.6);
-    z-index: 5;
-    animation: shakeWrong 0.5s ease-in-out forwards;
-}
-
-@keyframes popCorrect {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1.05); }
-}
-
-@keyframes shakeWrong {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-10px); }
-    75% { transform: translateX(10px); }
-}
-
-#setup-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: #111; color: white; z-index: 99999;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center;
-}
-
-@media (max-width: 600px) {
-    #game-grid { grid-template-columns: 1fr; }
-    .option img { height: 200px; }
+function checkRoundEnd() {
+    if (hasAnswered && oppHasAnswered) {
+        document.getElementById('status').innerText = "Раунд завершен!";
+        setTimeout(() => {
+            currentRound++;
+            if (currentRound < gameData.length) {
+                iAmReady = false; oppIsReady = false;
+                const btn = document.getElementById('ready-btn');
+                btn.disabled = false; btn.style.opacity = "1";
+                document.getElementById('prep-screen').style.display = 'flex';
+                document.getElementById('game-grid').style.display = 'none';
+                document.getElementById('map-preview').src = gameData[currentRound].map;
+                document.getElementById('ready-status').innerText = "Ждем готовности...";
+                document.getElementById('status').innerText = "Ожидание...";
+            } else {
+                alert(`Игра окончена! Счет: ${myScore} - ${oppScore}`);
+                location.reload();
+            }
+        }, 3000);
+    }
 }
