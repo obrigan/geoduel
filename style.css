@@ -19,6 +19,7 @@ body {
     box-sizing: border-box;
 }
 
+/* СТАРТОВЫЙ ЭКРАН */
 #setup-overlay {
     position: fixed !important;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -39,19 +40,23 @@ body {
     margin-bottom: 25px; width: 320px; outline: none; transition: 0.3s;
 }
 
+#nick-input:focus { border-color: #2ecc71; box-shadow: 0 0 20px rgba(46, 204, 113, 0.2); }
+
 .menu-btn {
     padding: 16px 45px; background: #2ecc71; border: none; color: white;
     border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 18px;
     width: 370px; transition: 0.2s;
 }
 
-.menu-btn:hover { background: #27ae60; transform: translateY(-2px); }
+.menu-btn:hover { background: #27ae60; transform: translateY(-2px); box-shadow: 0 10px 25px rgba(46, 204, 113, 0.3); }
+.secondary-btn { background: transparent; border: 1px solid #444; color: #666; margin-top: 15px; }
 
 .url-box {
     background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px;
     font-family: monospace; font-size: 13px; color: #555; margin-bottom: 15px; width: 350px;
 }
 
+/* ВЕРХНЯЯ ПАНЕЛЬ */
 #ui-layer {
     display: flex;
     flex-direction: column;
@@ -60,7 +65,10 @@ body {
     margin-bottom: 20px;
 }
 
-#timer-header { color: #e74c3c; font-size: 38px; margin: 0; font-weight: bold; }
+#timer-header { 
+    color: #e74c3c; font-size: 38px; margin: 0; font-weight: bold; 
+    transition: all 0.4s ease; /* Для анимации буста времени */
+}
 
 #game-info {
     display: grid;
@@ -79,44 +87,13 @@ body {
 #score-board { background: #000; padding: 2px 15px; border-radius: 20px; font-family: monospace; }
 #status { color: #aaa; margin-top: 10px; font-size: 16px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
 
-/* ПОДСКАЗКИ */
-#powerups-panel {
+/* ОБЕРТКА ДЛЯ ПЛАВНОСТИ */
+.section-wrapper {
+    width: 100%;
+    position: relative;
     display: flex;
-    gap: 20px;
-    margin-bottom: 20px;
     justify-content: center;
 }
-
-.powerup-btn {
-    background: #1a1a1a;
-    border: 2px solid #3498db;
-    border-radius: 15px;
-    padding: 10px 20px;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    transition: 0.3s;
-    min-width: 100px;
-}
-
-.powerup-btn:hover:not(.disabled) {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
-}
-
-.powerup-btn.disabled {
-    opacity: 0.2;
-    filter: grayscale(1);
-    cursor: not-allowed;
-    border-color: #444;
-}
-
-.powerup-icon { font-size: 24px; }
-.powerup-text { font-size: 12px; font-weight: bold; margin-top: 5px; }
-
-/* СЕТКА */
-.section-wrapper { width: 100%; position: relative; display: flex; flex-direction: column; align-items: center; }
 
 .section-wrapper > div {
     width: 100%;
@@ -127,12 +104,22 @@ body {
     transition: opacity 0.5s ease, visibility 0.5s ease;
 }
 
-.section-wrapper > div.active { opacity: 1; visibility: visible; position: relative; }
+.section-wrapper > div.active {
+    opacity: 1;
+    visibility: visible;
+    position: relative;
+}
 
+/* ЭКРАН ПОДГОТОВКИ */
 .prep-container { display: flex; flex-direction: column !important; align-items: center; gap: 15px; width: 100%; }
 .prep-container h2 { text-align: center; font-size: 28px; width: 100%; }
 
-#map-preview { height: 70vh; max-width: 95vw; border-radius: 15px; box-shadow: 0 0 60px rgba(0,0,0,0.8); border: 1px solid #333; object-fit: contain; }
+#map-preview { 
+    height: 70vh; max-width: 95vw; border-radius: 15px; 
+    box-shadow: 0 0 60px rgba(0,0,0,0.8); 
+    border: 1px solid #333;
+    object-fit: contain;
+}
 
 #ready-btn {
     background: #2ecc71; color: white; border: none; padding: 18px 80px;
@@ -140,38 +127,98 @@ body {
     margin-top: 10px; min-width: 250px; transition: all 0.2s;
 }
 
-#game-grid { display: none; grid-template-columns: 1fr 1fr; gap: 25px; width: 100%; max-width: 1250px; margin-top: 10px; }
+#ready-btn:hover:not(:disabled) { background: #27ae60; transform: scale(1.05); box-shadow: 0 0 20px rgba(46, 204, 113, 0.4); }
+#ready-btn:disabled { opacity: 0.5; cursor: default; }
 
-.option { border-radius: 15px; overflow: hidden; transition: 0.3s; border: 6px solid transparent; cursor: pointer; }
-.option:hover:not(.eliminated) { transform: translateY(-10px) scale(1.02); z-index: 10; }
-.option img { width: 100%; height: 480px; object-fit: cover; display: block; }
-
-.option.eliminated {
-    pointer-events: none;
-    opacity: 0.15;
-    filter: grayscale(1) blur(4px);
+/* ПАНЕЛЬ ПОДСКАЗОК */
+#powerups-panel {
+    position: fixed;
+    right: 3vw;
+    top: 50%;
+    transform: translateY(-50%);
+    flex-direction: column;
+    gap: 20px;
+    z-index: 100;
 }
 
-/* ФИНАЛ */
+.powerup-btn {
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #3498db;
+    border-radius: 15px;
+    padding: 15px 20px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+
+.powerup-btn:hover:not(.powerup-disabled) {
+    transform: scale(1.15) translateY(-5px);
+    box-shadow: 0 10px 25px rgba(52, 152, 219, 0.5);
+    border-color: #2ecc71;
+}
+
+.powerup-icon { font-size: 36px; margin-bottom: 5px; }
+.powerup-text { font-size: 14px; font-weight: bold; color: white; text-transform: uppercase; }
+
+.powerup-disabled {
+    opacity: 0.3;
+    pointer-events: none;
+    filter: grayscale(100%);
+}
+
+/* СЕТКА ИГРЫ */
+#game-grid { 
+    display: none; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 25px; 
+    width: 100%; 
+    max-width: 1250px; 
+    margin-top: 10px;
+}
+
+.option { border-radius: 15px; overflow: hidden; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 6px solid transparent; cursor: pointer; }
+.option:hover { transform: translateY(-10px) scale(1.02); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8); z-index: 10; }
+.option img { width: 100%; height: 480px; object-fit: cover; display: block; }
+
+/* ФИНАЛЬНЫЙ ЭКРАН */
 .winner-display { display: flex; align-items: center; gap: 30px; margin: 20px 0; }
 .winner-circle {
     width: 250px; height: 250px; border-radius: 50%;
     background: #111; border: 8px solid transparent;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 0 50px rgba(0,0,0,0.8); transition: 0.3s;
+    box-shadow: 0 0 50px rgba(0,0,0,0.8); overflow: hidden; transition: 0.3s;
 }
-
 #winner-name { font-size: 32px; font-weight: bold; text-transform: uppercase; text-align: center; color: white; }
 .trophy-icon { font-size: 100px; filter: drop-shadow(0 0 20px rgba(241, 196, 15, 0.5)); }
 .winner-circle.winner-active { border-color: #2ecc71 !important; box-shadow: 0 0 40px rgba(46, 204, 113, 0.5) !important; }
 .winner-circle.tie { border-color: #f1c40f !important; box-shadow: 0 0 40px rgba(241, 196, 15, 0.5) !important; }
 
+/* ЭФФЕКТЫ ВЫБОРА */
 .dimmed { opacity: 0.25; filter: grayscale(100%) blur(2px); }
-.correct-choice { border-color: #2ecc71 !important; box-shadow: 0 0 50px rgba(46, 204, 113, 0.6) !important; }
-.wrong-choice { border-color: #ff4d4d !important; box-shadow: 0 0 50px rgba(231, 76, 60, 0.6) !important; }
+.eliminated { pointer-events: none !important; } /* Класс для 50/50, запрещает клик */
+.correct-choice { border-color: #2ecc71 !important; box-shadow: 0 0 50px rgba(46, 204, 113, 0.6) !important; animation: pop 0.5s ease forwards; }
+.wrong-choice { border-color: #ff4d4d !important; box-shadow: 0 0 50px rgba(231, 76, 60, 0.6) !important; animation: shake 0.5s ease forwards; }
+
+@keyframes pop { 0% {transform:scale(1);} 50% {transform:scale(1.08);} 100% {transform:scale(1.04);} }
+@keyframes shake { 0%,100% {transform:translateX(0);} 25% {transform:translateX(-12px);} 75% {transform:translateX(12px);} }
+
+@media (max-width: 1400px) {
+    #powerups-panel {
+        position: relative;
+        right: 0; top: 0; transform: none;
+        flex-direction: row; justify-content: center;
+        margin-bottom: 15px; width: 100%;
+    }
+}
 
 @media (max-width: 800px) {
     #game-grid { grid-template-columns: 1fr; }
     .option img { height: 280px; }
     #map-preview { height: 50vh; }
+    .winner-circle { width: 180px; height: 180px; }
+    #winner-name { font-size: 24px; }
+    .trophy-icon { font-size: 60px; }
 }
