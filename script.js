@@ -8,9 +8,8 @@ let peerIdFromUrl = urlParams.get('peer');
 const peer = new Peer();
 let conn;
 
-let myNickname = "Игрок 1";
-let oppNickname = "Игрок 2";
-
+let myNickname = "Я";
+let oppNickname = "Соперник";
 let currentRound = 0;
 let myScore = 0;
 let oppScore = 0;
@@ -29,39 +28,29 @@ peer.on('open', (id) => {
     const gameUrl = window.location.origin + window.location.pathname + '?peer=' + id;
 
     if (!peerIdFromUrl) {
-        // ХОСТ
         setupScreen.innerHTML = `
-            <h1 style="color:#2ecc71; margin-bottom:10px;">GeoDuel 1v1</h1>
+            <h1>GeoDuel 1v1</h1>
             <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12">
-            <p>Отправь ссылку другу:</p>
             <div class="url-box">${gameUrl}</div>
             <button id="btn-copy" class="menu-btn">СКОПИРОВАТЬ ССЫЛКУ</button>
-            <button id="btn-start" class="menu-btn" style="background:#444; margin-top:20px;">К ИГРЕ</button>
+            <button id="btn-start" class="menu-btn secondary-btn">ПЕРЕЙТИ К ИГРЕ</button>
         `;
-    } else {
-        // ГОСТЬ
-        setupScreen.innerHTML = `
-            <h1 style="color:#2ecc71; margin-bottom:10px;">GeoDuel 1v1</h1>
-            <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12">
-            <button id="btn-join" class="menu-btn" style="margin-top:20px;">ПРИСОЕДИНИТЬСЯ</button>
-        `;
-    }
-
-    // Логика кнопок
-    if (document.getElementById('btn-copy')) {
         document.getElementById('btn-copy').onclick = () => {
             navigator.clipboard.writeText(gameUrl);
-            document.getElementById('btn-copy').innerText = "СКОПИРОВАНО!";
+            document.getElementById('btn-copy').innerText = "ССЫЛКА СКОПИРОВАНА!";
         };
         document.getElementById('btn-start').onclick = () => {
             myNickname = document.getElementById('nick-input').value || "Хост";
             document.getElementById('name-me').innerText = myNickname;
-            setupScreen.remove();
+            setupScreen.style.display = 'none';
             document.getElementById('main-game-container').style.display = 'block';
         };
-    }
-
-    if (document.getElementById('btn-join')) {
+    } else {
+        setupScreen.innerHTML = `
+            <h1>GeoDuel 1v1</h1>
+            <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12">
+            <button id="btn-join" class="menu-btn">ПРИСОЕДИНИТЬСЯ</button>
+        `;
         document.getElementById('btn-join').onclick = () => {
             myNickname = document.getElementById('nick-input').value || "Гость";
             document.getElementById('name-me').innerText = myNickname;
@@ -78,17 +67,14 @@ peer.on('connection', (c) => {
 
 function setupConnection() {
     conn.on('open', () => {
-        // При подключении сразу отправляем свой ник
         conn.send({ type: 'init-name', name: myNickname });
-
         document.getElementById('main-game-container').style.display = 'block';
         if (document.getElementById('setup-overlay')) setupScreen.remove();
-        
+
         conn.on('data', (data) => {
             if (data.type === 'init-name') {
                 oppNickname = data.name;
                 document.getElementById('name-opp').innerText = oppNickname;
-                // Хост отвечает гостю своим ником в ответ
                 if (!peerIdFromUrl) conn.send({ type: 'init-name', name: myNickname });
             }
             if (data.type === 'ready') { oppIsReady = true; checkStartRound(); }
@@ -96,7 +82,7 @@ function setupConnection() {
                 oppHasAnswered = true; 
                 if (data.choice === gameData[currentRound].correct) oppScore++;
                 document.getElementById('score-opp').innerText = oppScore;
-                checkRoundEnd(); 
+                checkRoundEnd();
             }
         });
     });
@@ -105,9 +91,9 @@ function setupConnection() {
 window.setReady = function() {
     if (iAmReady) return;
     iAmReady = true;
-    document.getElementById('ready-btn').disabled = true;
-    document.getElementById('ready-btn').style.opacity = "0.5";
-    document.getElementById('ready-status').innerText = "Ожидание соперника...";
+    const btn = document.getElementById('ready-btn');
+    btn.disabled = true; btn.style.opacity = "0.5";
+    document.getElementById('ready-status').innerText = "Ждем соперника...";
     if (conn && conn.open) conn.send({ type: 'ready' });
     checkStartRound();
 };
@@ -154,7 +140,7 @@ function sendChoice(index) {
     }
     revealAnswers(index, correctIndex);
     if (conn && conn.open) conn.send({ type: 'answer', choice: index });
-    document.getElementById('status').innerText = "Ждем соперника...";
+    document.getElementById('status').innerText = "Ожидание хода соперника...";
     checkRoundEnd();
 }
 
@@ -176,15 +162,15 @@ function checkRoundEnd() {
             currentRound++;
             if (currentRound < gameData.length) {
                 iAmReady = false; oppIsReady = false;
-                document.getElementById('ready-btn').disabled = false;
-                document.getElementById('ready-btn').style.opacity = "1";
+                const btn = document.getElementById('ready-btn');
+                btn.disabled = false; btn.style.opacity = "1";
                 document.getElementById('prep-screen').style.display = 'flex';
                 document.getElementById('game-grid').style.display = 'none';
                 document.getElementById('map-preview').src = gameData[currentRound].map;
                 document.getElementById('ready-status').innerText = "Ждем готовности...";
                 document.getElementById('status').innerText = "Ожидание...";
             } else {
-                alert(`Игра окончена!\n${myNickname}: ${myScore}\n${oppNickname}: ${oppScore}`);
+                alert(`ФИНАЛ!\n${myNickname}: ${myScore}\n${oppNickname}: ${oppScore}`);
                 location.reload();
             }
         }, 3000);
