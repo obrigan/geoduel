@@ -20,22 +20,23 @@
             <div id="status">Ожидание...</div>
         </div>
 
-        <div id="prep-screen" class="prep-container">
-            <h2 id="round-title">Раунд <span id="round-num">1</span>: Где эта точка?</h2>
-            <div class="map-container">
-                <img id="map-preview" src="images/map1.jpg" alt="Карта">
+        <div class="section-wrapper">
+            <div id="prep-screen" class="prep-container active">
+                <h2 id="round-title">Раунд <span id="round-num">1</span>: Где эта точка?</h2>
+                <div class="map-container">
+                    <img id="map-preview" src="images/map1.jpg" alt="Карта">
+                </div>
+                <button id="ready-btn" onclick="setReady()">ГОТОВ!</button>
+                <p id="ready-status">Ждем готовности игроков...</p>
             </div>
-            <button id="ready-btn" onclick="setReady()">ГОТОВ!</button>
-            <p id="ready-status">Ждем готовности игроков...</p>
-        </div>
 
-        <div id="game-grid" style="display: none;">
-            <div class="option" onclick="sendChoice(0)"><img id="img0" src=""></div>
-            <div class="option" onclick="sendChoice(1)"><img id="img1" src=""></div>
-            <div class="option" onclick="sendChoice(2)"><img id="img2" src=""></div>
-            <div class="option" onclick="sendChoice(3)"><img id="img3" src=""></div>
+            <div id="game-grid">
+                <div class="option" onclick="sendChoice(0)"><img id="img0" src=""></div>
+                <div class="option" onclick="sendChoice(1)"><img id="img1" src=""></div>
+                <div class="option" onclick="sendChoice(2)"><img id="img2" src=""></div>
+                <div class="option" onclick="sendChoice(3)"><img id="img3" src=""></div>
+            </div>
         </div>
-    </div>
 
     <script src="script.js"></script>
 </body>
