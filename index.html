@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>GeoDuel 1v1</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://js.pusher.com/8.0.1/pusher.min.js"></script>
+</head>
+<body>
+    <div class="ui">
+        <div id="room-info">Ссылка: <b id="room-link">...</b></div>
+        <div id="timer">Время: 90</div>
+        <div class="stats">
+            <div>Раунд: <span id="round-num">1</span>/2</div>
+            <div>Счёт: <span id="score-me">0</span> - <span id="score-opp">0</span></div>
+        </div>
+        <div id="status">Ожидание соперника...</div>
+    </div>
+
+    <div id="prep-screen" class="overlay">
+        <h2>Где эта точка?</h2>
+        <img id="map-preview" src="" style="max-width: 80%; border: 3px solid white;">
+        <br>
+        <button id="ready-btn" onclick="setReady()">Я ГОТОВ</button>
+        <p id="ready-status">Ждем готовности игроков...</p>
+    </div>
+
+    <div class="game-grid" id="game-grid" style="display: none;">
+        <div class="option" onclick="sendChoice(0)"><img id="img0" src=""></div>
+        <div class="option" onclick="sendChoice(1)"><img id="img1" src=""></div>
+        <div class="option" onclick="sendChoice(2)"><img id="img2" src=""></div>
+        <div class="option" onclick="sendChoice(3)"><img id="img3" src=""></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
