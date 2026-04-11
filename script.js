@@ -120,7 +120,7 @@ window.setReady = function() {
 
 function checkStartRound() {
     if (iAmReady && oppIsReady) {
-        document.getElementById('prep-screen').style.display = 'none';
+        document.getElementById('prep-screen').style.display = 'none'; // Теперь сработает!
         document.getElementById('game-grid').style.display = 'grid';
         loadRound();
     }
