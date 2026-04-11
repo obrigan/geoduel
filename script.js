@@ -1,16 +1,6 @@
-// --- КОНФИГУРАЦИЯ ДАННЫХ ---
 const gameData = [
-    { 
-        map: 'images/map1.jpg', 
-        correct: 0, 
-        images: ['images/r1_1.jpg', 'images/r1_2.jpg', 'images/r1_3.jpg', 'images/r1_4.jpg'] 
-    },
-    { 
-        map: 'images/map2.jpg', 
-        correct: 1, 
-        images: ['images/r2_1.jpg', 'images/r2_2.jpg', 'images/r2_3.jpg', 'images/r2_4.jpg'] 
-    }
-    // Добавляй остальные раунды ниже по такому же шаблону
+    { map: 'images/map1.jpg', correct: 0, images: ['images/r1_1.jpg', 'images/r1_2.jpg', 'images/r1_3.jpg', 'images/r1_4.jpg'] },
+    { map: 'images/map2.jpg', correct: 1, images: ['images/r2_1.jpg', 'images/r2_2.jpg', 'images/r2_3.jpg', 'images/r2_4.jpg'] }
 ];
 
 const urlParams = new URLSearchParams(window.location.search);
@@ -29,22 +19,42 @@ let oppHasAnswered = false;
 let timer;
 let timeLeft = 90;
 
-// Когда наш ID создан
+// СТИЛИ ДЛЯ ССЫЛКИ (чтобы она была поверх всего)
+const linkEl = document.getElementById('room-link');
+linkEl.style.position = 'fixed';
+linkEl.style.top = '10px';
+linkEl.style.left = '50%';
+linkEl.style.transform = 'translateX(-50%)';
+linkEl.style.zIndex = '9999';
+linkEl.style.background = 'rgba(0,0,0,0.8)';
+linkEl.style.padding = '10px';
+linkEl.style.borderRadius = '5px';
+linkEl.style.color = '#00ff00';
+linkEl.style.border = '1px solid #00ff00';
+linkEl.style.fontSize = '14px';
+
 peer.on('open', (id) => {
     if (!peerIdFromUrl) {
-        // Мы — создатель комнаты
         const gameUrl = window.location.origin + window.location.pathname + '?peer=' + id;
-        document.getElementById('room-link').innerText = gameUrl;
-        document.getElementById('status').innerText = "Скинь новую ссылку другу!";
+        
+        linkEl.innerText = "КЛИКНИ ТУТ, ЧТОБЫ СКОПИРОВАТЬ ССЫЛКУ";
+        linkEl.style.cursor = 'pointer';
+        
+        linkEl.onclick = () => {
+            navigator.clipboard.writeText(gameUrl);
+            linkEl.innerText = "СКОПИРОВАНО! ОТПРАВЛЯЙ ДРУГУ";
+            setTimeout(() => { linkEl.innerText = "ССЫЛКА СКОПИРОВАНА"; }, 2000);
+        };
+
+        console.log("Ссылка для друга:", gameUrl);
+        document.getElementById('status').innerText = "Скопируй ссылку вверху экрана и отправь другу!";
     } else {
-        // Мы зашли по ссылке друга
         conn = peer.connect(peerIdFromUrl);
-        document.getElementById('room-link').innerText = "Соединение...";
+        linkEl.innerText = "ПОДКЛЮЧЕНИЕ К ХОСТУ...";
         setupConnection();
     }
 });
 
-// Когда кто-то подключается к нам
 peer.on('connection', (c) => {
     conn = c;
     setupConnection();
@@ -52,18 +62,12 @@ peer.on('connection', (c) => {
 
 function setupConnection() {
     conn.on('open', () => {
-        document.getElementById('status').innerText = "Противник в сети!";
+        document.getElementById('status').innerText = "Противник в сети! Жми ГОТОВ.";
+        linkEl.style.display = 'none'; // Скрываем ссылку, когда все в сборе
         
         conn.on('data', (data) => {
-            if (data.type === 'ready') {
-                oppIsReady = true;
-                checkStartRound();
-            }
-            if (data.type === 'answer') {
-                oppHasAnswered = true;
-                processOpponentAnswer(data.choice);
-                checkRoundEnd();
-            }
+            if (data.type === 'ready') { oppIsReady = true; checkStartRound(); }
+            if (data.type === 'answer') { oppHasAnswered = true; processOpponentAnswer(data.choice); checkRoundEnd(); }
         });
     });
 }
@@ -85,20 +89,12 @@ function checkStartRound() {
 }
 
 function loadRound() {
-    hasAnswered = false;
-    oppHasAnswered = false;
-    timeLeft = 90;
-    document.getElementById('timer').innerText = `Время: ${timeLeft}`;
-    document.getElementById('round-num').innerText = currentRound + 1;
-    document.getElementById('status').innerText = "Твой ход!";
-    document.getElementById('game-grid').style.pointerEvents = 'auto';
-    
+    hasAnswered = false; oppHasAnswered = false; timeLeft = 90;
     const round = gameData[currentRound];
     document.getElementById('map-preview').src = round.map;
     for (let i = 0; i < 4; i++) {
-        const img = document.getElementById(`img${i}`);
-        img.src = round.images[i];
-        img.parentElement.className = 'option';
+        document.getElementById(`img${i}`).src = round.images[i];
+        document.getElementById(`img${i}`).parentElement.className = 'option';
     }
     startTimer();
 }
@@ -108,10 +104,7 @@ function startTimer() {
     timer = setInterval(() => {
         timeLeft--;
         document.getElementById('timer').innerText = `Время: ${timeLeft}`;
-        if (timeLeft <= 0) {
-            clearInterval(timer);
-            if (!hasAnswered) sendChoice(-1);
-        }
+        if (timeLeft <= 0) { clearInterval(timer); if (!hasAnswered) sendChoice(-1); }
     }, 1000);
 }
 
@@ -119,15 +112,11 @@ function sendChoice(index) {
     if (hasAnswered) return;
     hasAnswered = true;
     clearInterval(timer);
-
     const isCorrect = index === gameData[currentRound].correct;
     if (isCorrect) myScore++;
-    
     if (index !== -1) highlightResult(index, isCorrect);
     if (conn) conn.send({ type: 'answer', choice: index, round: currentRound });
-
-    document.getElementById('status').innerText = "Ждем соперника...";
-    document.getElementById('game-grid').style.pointerEvents = 'none';
+    document.getElementById('status').innerText = "Ждем ответ соперника...";
     checkRoundEnd();
 }
 
@@ -145,28 +134,19 @@ function processOpponentAnswer(choice) {
 
 function checkRoundEnd() {
     if (hasAnswered && oppHasAnswered) {
-        document.getElementById('status').innerText = "Раунд завершен!";
         setTimeout(() => {
             currentRound++;
             if (currentRound < gameData.length) {
-                iAmReady = false;
-                oppIsReady = false;
+                iAmReady = false; oppIsReady = false;
                 document.getElementById('ready-btn').disabled = false;
-                document.getElementById('ready-status').innerText = "Ждем готовности...";
-                document.getElementById('map-preview').src = gameData[currentRound].map;
                 document.getElementById('prep-screen').style.display = 'flex';
                 document.getElementById('game-grid').style.display = 'none';
+                document.getElementById('map-preview').src = gameData[currentRound].map;
             } else {
-                showFinalResult();
+                alert(`Игра окончена! Счет: ${myScore} - ${oppScore}`);
             }
         }, 3000);
     }
 }
 
-function showFinalResult() {
-    let resultText = myScore > oppScore ? "Победа! 🎉" : (myScore < oppScore ? "Поражение... 💀" : "Ничья! 🤝");
-    document.getElementById('status').innerHTML = `<b>${resultText}</b><br>Счет: ${myScore} - ${oppScore}`;
-}
-
-// Показываем карту первого раунда
 document.getElementById('map-preview').src = gameData[0].map;
