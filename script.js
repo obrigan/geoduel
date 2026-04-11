@@ -10,7 +10,7 @@ let conn;
 
 let myNickname = "";
 let oppNickname = "Соперник";
-let isGameStarted = false; // Флаг: нажал ли игрок кнопку старта
+let isGameStarted = false;
 
 let currentRound = 0;
 let myScore = 0;
@@ -30,13 +30,12 @@ peer.on('open', (id) => {
     const gameUrl = window.location.origin + window.location.pathname + '?peer=' + id;
 
     if (!peerIdFromUrl) {
-        // ХОСТ
         setupScreen.innerHTML = `
             <h1>GeoDuel 1v1</h1>
             <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12">
             <div class="url-box">${gameUrl}</div>
             <button id="btn-copy" class="menu-btn">СКОПИРОВАТЬ ССЫЛКУ</button>
-            <button id="btn-start" class="menu-btn secondary-btn">ПЕРЕЙТИ К ИГРЕ</button>
+            <button id="btn-start" class="menu-btn" style="background:transparent; border:1px solid #444; color:#777; margin-top:15px;">ПЕРЕЙТИ К ИГРЕ</button>
         `;
         document.getElementById('btn-copy').onclick = () => {
             navigator.clipboard.writeText(gameUrl);
@@ -45,52 +44,37 @@ peer.on('open', (id) => {
         document.getElementById('btn-start').onclick = () => {
             myNickname = document.getElementById('nick-input').value || "Хост";
             document.getElementById('name-me').innerText = myNickname;
+            isGameStarted = true;
             setupScreen.style.display = 'none';
             document.getElementById('main-game-container').style.display = 'flex';
-            isGameStarted = true;
-            
-            // Если гость УЖЕ подключился, пока мы вводили ник, отправляем ему наше имя
             if (conn && conn.open) conn.send({ type: 'init-name', name: myNickname });
         };
     } else {
-        // ГОСТЬ
         setupScreen.innerHTML = `
             <h1>GeoDuel 1v1</h1>
             <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12">
-            <button id="btn-join" class="menu-btn">ПРИСОЕДИНИТЬСЯ</button>
+            <button id="btn-join" class="menu-btn" style="margin-top:15px;">ПРИСОЕДИНИТЬСЯ</button>
         `;
         document.getElementById('btn-join').onclick = () => {
             myNickname = document.getElementById('nick-input').value || "Гость";
             document.getElementById('name-me').innerText = myNickname;
-            setupScreen.style.display = 'none';
-            document.getElementById('main-game-container').style.display = 'flex';
             isGameStarted = true;
-            
-            // Гость инициирует соединение после нажатия кнопки
             conn = peer.connect(peerIdFromUrl);
             setupConnectionListeners(conn);
         };
     }
 });
 
-// Хост ждет входящего подключения
 peer.on('connection', (incomingConn) => {
     conn = incomingConn;
     setupConnectionListeners(conn);
 });
 
-// Единая логика для приема данных
 function setupConnectionListeners(connection) {
     connection.on('open', () => {
-        // 1. Показываем контейнер игры (именно flex, чтобы работала центровка)
         document.getElementById('main-game-container').style.display = 'flex';
-        
-        // 2. Прячем стартовый экран с вводом ника
-        if (document.getElementById('setup-overlay')) {
-            document.getElementById('setup-overlay').style.display = 'none';
-        }
+        setupScreen.style.display = 'none';
 
-        // Как только канал открыт, если мы уже нажали старт — шлем ник
         if (isGameStarted) {
             connection.send({ type: 'init-name', name: myNickname });
         }
@@ -99,17 +83,11 @@ function setupConnectionListeners(connection) {
             if (data.type === 'init-name') {
                 oppNickname = data.name;
                 document.getElementById('name-opp').innerText = oppNickname;
-                document.getElementById('status').innerText = "Соперник подключился!";
-                
-                // Хост отвечает своим именем, если гость прислал первым
                 if (!peerIdFromUrl && isGameStarted) {
                     connection.send({ type: 'init-name', name: myNickname });
                 }
             }
-            if (data.type === 'ready') { 
-                oppIsReady = true; 
-                checkStartRound(); 
-            }
+            if (data.type === 'ready') { oppIsReady = true; checkStartRound(); }
             if (data.type === 'answer') { 
                 oppHasAnswered = true; 
                 if (data.choice === gameData[currentRound].correct) oppScore++;
@@ -123,16 +101,15 @@ function setupConnectionListeners(connection) {
 window.setReady = function() {
     if (iAmReady) return;
     iAmReady = true;
-    const btn = document.getElementById('ready-btn');
-    btn.disabled = true;
-    document.getElementById('ready-status').innerText = "Ты готов! Ждем соперника...";
+    document.getElementById('ready-btn').disabled = true;
+    document.getElementById('ready-status').innerText = "Ожидание соперника...";
     if (conn && conn.open) conn.send({ type: 'ready' });
     checkStartRound();
 };
 
 function checkStartRound() {
     if (iAmReady && oppIsReady) {
-        document.getElementById('prep-screen').style.display = 'none'; // Теперь сработает!
+        document.getElementById('prep-screen').style.display = 'none';
         document.getElementById('game-grid').style.display = 'grid';
         loadRound();
     }
@@ -140,7 +117,6 @@ function checkStartRound() {
 
 function loadRound() {
     hasAnswered = false; oppHasAnswered = false; timeLeft = 90;
-    document.getElementById('status').innerText = "Твой ход!";
     document.getElementById('game-grid').style.pointerEvents = 'auto';
     document.querySelectorAll('.option').forEach(opt => opt.className = 'option');
     const round = gameData[currentRound];
@@ -173,7 +149,7 @@ function sendChoice(index) {
     }
     revealAnswers(index, correctIndex);
     if (conn && conn.open) conn.send({ type: 'answer', choice: index });
-    document.getElementById('status').innerText = "Ждем ответ соперника...";
+    document.getElementById('status').innerText = "Ждем соперника...";
     checkRoundEnd();
 }
 
@@ -195,12 +171,11 @@ function checkRoundEnd() {
             currentRound++;
             if (currentRound < gameData.length) {
                 iAmReady = false; oppIsReady = false;
-                const btn = document.getElementById('ready-btn');
-                btn.disabled = false;
+                document.getElementById('ready-btn').disabled = false;
                 document.getElementById('prep-screen').style.display = 'flex';
                 document.getElementById('game-grid').style.display = 'none';
                 document.getElementById('map-preview').src = gameData[currentRound].map;
-                document.getElementById('ready-status').innerText = "Ждем готовности игроков...";
+                document.getElementById('ready-status').innerText = "Ждем готовности...";
                 document.getElementById('status').innerText = "Ожидание...";
             } else {
                 alert(`ФИНАЛ!\n${myNickname}: ${myScore}\n${oppNickname}: ${oppScore}`);
