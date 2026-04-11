@@ -82,6 +82,14 @@ peer.on('connection', (incomingConn) => {
 // Единая логика для приема данных
 function setupConnectionListeners(connection) {
     connection.on('open', () => {
+        // 1. Показываем контейнер игры (именно flex, чтобы работала центровка)
+        document.getElementById('main-game-container').style.display = 'flex';
+        
+        // 2. Прячем стартовый экран с вводом ника
+        if (document.getElementById('setup-overlay')) {
+            document.getElementById('setup-overlay').style.display = 'none';
+        }
+
         // Как только канал открыт, если мы уже нажали старт — шлем ник
         if (isGameStarted) {
             connection.send({ type: 'init-name', name: myNickname });
@@ -92,12 +100,16 @@ function setupConnectionListeners(connection) {
                 oppNickname = data.name;
                 document.getElementById('name-opp').innerText = oppNickname;
                 document.getElementById('status').innerText = "Соперник подключился!";
+                
                 // Хост отвечает своим именем, если гость прислал первым
                 if (!peerIdFromUrl && isGameStarted) {
                     connection.send({ type: 'init-name', name: myNickname });
                 }
             }
-            if (data.type === 'ready') { oppIsReady = true; checkStartRound(); }
+            if (data.type === 'ready') { 
+                oppIsReady = true; 
+                checkStartRound(); 
+            }
             if (data.type === 'answer') { 
                 oppHasAnswered = true; 
                 if (data.choice === gameData[currentRound].correct) oppScore++;
