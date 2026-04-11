@@ -1,7 +1,8 @@
+/* Базовая верстка: всё по центру */
 body {
     background-color: #0b0b0b;
     color: white;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
     margin: 0;
     display: flex;
     flex-direction: column;
@@ -9,7 +10,17 @@ body {
     min-height: 100vh;
 }
 
-/* СТАРТОВЫЙ ЭКРАН */
+#main-game-container {
+    width: 100%;
+    max-width: 1300px;
+    display: none; /* Скрыто изначально, покажем через JS */
+    flex-direction: column !important; /* Ультиматум на колонку */
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* СТАРТОВЫЙ ЭКРАН (НИКИ) */
 #setup-overlay {
     position: fixed !important;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -22,75 +33,147 @@ body {
     text-align: center;
 }
 
-#setup-overlay h1 { font-size: 56px; color: #2ecc71; margin-bottom: 20px; }
+#setup-overlay h1 { font-size: 56px; color: #2ecc71; margin-bottom: 30px; }
 
 #nick-input {
-    background: #151515; border: 2px solid #333; padding: 15px;
+    background: #151515; border: 2px solid #333; padding: 15px 25px;
     border-radius: 12px; color: white; font-size: 22px; text-align: center;
-    margin-bottom: 20px; width: 300px; outline: none; transition: 0.3s;
+    margin-bottom: 25px; width: 320px; outline: none; transition: 0.3s;
 }
+
+#nick-input:focus { border-color: #2ecc71; box-shadow: 0 0 20px rgba(46, 204, 113, 0.2); }
 
 .menu-btn {
-    padding: 16px 40px; background: #2ecc71; border: none; color: white;
+    padding: 16px 45px; background: #2ecc71; border: none; color: white;
     border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 18px;
-    width: 350px; transition: 0.3s; margin-bottom: 10px;
+    width: 370px; transition: 0.2s;
 }
 
-.menu-btn:hover { transform: scale(1.02); background: #27ae60; }
+.menu-btn:hover { background: #27ae60; transform: translateY(-2px); box-shadow: 0 10px 25px rgba(46, 204, 113, 0.3); }
+.secondary-btn { background: transparent; border: 1px solid #444; color: #666; margin-top: 15px; }
 
 .url-box {
-    background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px;
-    font-family: monospace; font-size: 12px; color: #555; margin-bottom: 20px;
-    width: 330px; word-break: break-all;
+    background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px;
+    font-family: monospace; font-size: 13px; color: #555; margin-bottom: 15px; width: 350px;
 }
 
-/* ИГРОВОЙ ИНТЕРФЕЙС */
-#main-game-container {
-    width: 100%; max-width: 1300px;
-    display: none; /* Скрыто изначально */
-    flex-direction: column !important;
-    align-items: center; padding: 20px; box-sizing: border-box;
+/* ВЕРХНЯЯ ПАНЕЛЬ ИГРЫ */
+#ui-layer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+    margin-bottom: 20px;
 }
 
-#ui-layer { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; width: 100%; }
-#timer-header { color: #e74c3c; font-size: 42px; margin: 0; font-weight: bold; }
+#timer-header { color: #e74c3c; font-size: 38px; margin: 0; font-weight: bold; }
 
 #game-info {
-    display: grid; grid-template-columns: 1fr auto 1fr;
-    align-items: center; gap: 20px; background: rgba(255,255,255,0.05);
-    padding: 12px 40px; border-radius: 60px; margin-top: 15px; min-width: 450px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 20px;
+    background: rgba(255,255,255,0.07);
+    padding: 10px 35px;
+    border-radius: 60px;
+    border: 1px solid rgba(255,255,255,0.1);
+    font-size: 20px;
 }
 
-/* ЦВЕТА НИКОВ */
-#name-me { color: #2ecc71 !important; font-weight: bold; text-align: right; font-size: 24px; }
-#name-opp { color: #ff4d4d !important; font-weight: bold; text-align: left; font-size: 24px; }
-#score-board { background: #000; padding: 5px 20px; border-radius: 30px; font-size: 28px; font-family: monospace; }
+#name-me { color: #2ecc71; font-weight: bold; text-align: right; }
+#name-opp { color: #ff4d4d; font-weight: bold; text-align: left; }
+#score-board { background: #000; padding: 2px 15px; border-radius: 20px; font-family: monospace; }
+#status { color: #aaa; margin-top: 10px; font-size: 16px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
 
-/* КАРТА */
-.prep-container { display: flex !important; flex-direction: column !important; align-items: center; width: 100%; gap: 15px; }
-#map-preview { height: 65vh; max-width: 95vw; border-radius: 20px; border: 2px solid #333; object-fit: contain; }
+/* ЭКРАН ПОДГОТОВКИ (КАРТА) */
+.prep-container { 
+    display: flex; 
+    flex-direction: column !important; /* Ультиматум на колонку */
+    align-items: center; 
+    gap: 15px; 
+    width: 100%;
+}
 
-/* КНОПКА ГОТОВ С АНИМАЦИЕЙ */
+.prep-container h2 { text-align: center; font-size: 28px; width: 100%; }
+
+#map-preview { 
+    height: 70vh; max-width: 95vw; border-radius: 15px; 
+    box-shadow: 0 0 60px rgba(0,0,0,0.8); 
+    border: 1px solid #333;
+    object-fit: contain;
+}
+
 #ready-btn {
     background: #2ecc71; color: white; border: none; padding: 18px 80px;
     border-radius: 15px; font-size: 26px; font-weight: bold; cursor: pointer; 
-    margin-top: 20px; min-width: 250px; transition: all 0.3s ease;
+    margin-top: 10px; transition: all 0.2s;
 }
 
-#ready-btn:hover:not(:disabled) {
-    transform: scale(1.05);
-    background: #27ae60;
-    box-shadow: 0 0 20px rgba(46, 204, 113, 0.4);
+#ready-btn:hover:not(:disabled) { background: #27ae60; transform: scale(1.05); box-shadow: 0 0 20px rgba(46, 204, 113, 0.4); }
+#ready-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* СЕТКА ИГРЫ */
+#game-grid { 
+    display: none; /* Скрыто изначально, JavaScript включит его как 'grid' */
+    grid-template-columns: 1fr 1fr; 
+    gap: 25px; 
+    width: 100%; 
+    max-width: 1250px; 
+    margin-top: 10px;
 }
 
-#ready-btn:disabled { opacity: 0.4; cursor: default; }
+.option {
+    border-radius: 15px;
+    overflow: hidden;
+    /* Плавный переход для возвращения из hover-состояния */
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+    border: 6px solid transparent;
+}
 
-/* КАРТОЧКИ ИГРЫ */
-#game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; width: 100%; max-width: 1250px; }
-.option { border-radius: 20px; overflow: hidden; transition: 0.3s; border: 8px solid transparent; cursor: pointer; background: #1a1a1a; }
-.option:hover { transform: translateY(-10px); box-shadow: 0 15px 30px rgba(0,0,0,0.6); z-index: 5; }
+/* АНИМАЦИЯ ПОДЪЕМА: Как было раньше */
+.option:hover {
+    transform: translateY(-10px) scale(1.02); /* Всплывает и чуть увеличивается */
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8);
+    z-index: 10;
+}
+
 .option img { width: 100%; height: 480px; object-fit: cover; display: block; }
 
+/* ЭФФЕКТЫ */
 .dimmed { opacity: 0.25; filter: grayscale(100%) blur(2px); }
-.correct-choice { border-color: #2ecc71 !important; box-shadow: 0 0 50px rgba(46, 204, 113, 0.6); }
-.wrong-choice { border-color: #ff4d4d !important; box-shadow: 0 0 50px rgba(231, 76, 60, 0.6); }
+.correct-choice { border-color: #2ecc71 !important; box-shadow: 0 0 50px rgba(46, 204, 113, 0.6) !important; animation: pop 0.5s ease forwards; }
+.wrong-choice { border-color: #ff4d4d !important; box-shadow: 0 0 50px rgba(231, 76, 60, 0.6) !important; animation: shake 0.5s ease forwards; }
+
+@keyframes pop { 0% {transform:scale(1);} 50% {transform:scale(1.08);} 100% {transform:scale(1.04);} }
+@keyframes shake { 0%,100% {transform:translateX(0);} 25% {transform:translateX(-12px);} 75% {transform:translateX(12px);} }
+
+/* Мобильная адаптация */
+@media (max-width: 800px) {
+    #game-grid { grid-template-columns: 1fr; }
+    .option img { height: 280px; }
+    #map-preview { height: 50vh; }
+}
+
+/* ПЛАВНОЕЗАТУХАНИЕ ДЛЯ СМЕНЫ ЭКРАНОВ */
+.section-wrapper {
+    width: 100%;
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+.section-wrapper > div {
+    width: 100%;
+    opacity: 0;
+    visibility: hidden;
+    position: absolute;
+    top: 0;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.section-wrapper > div.active {
+    opacity: 1;
+    visibility: visible;
+    position: relative;
+}
