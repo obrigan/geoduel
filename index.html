@@ -6,28 +6,46 @@
     <title>GeoDuel 1v1</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        /* Быстрая правка для центровки, чтобы не копаться в CSS */
+        #ui-layer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .prep-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
 </head>
 <body>
 
     <div id="main-game-container" style="display: none;">
         <div id="ui-layer">
-            <div id="room-info">Ссылка: <span id="room-link">Генерация...</span></div>
-            <div id="timer">Время: 90</div>
-            <div id="round-info">Раунд: <span id="round-num">1</span>/2</div>
-            <div id="score">Счёт: <span id="score-me">0</span> - <span id="score-opp">0</span></div>
-            <div id="status">Ожидание...</div>
-        </div>
-
-        <div id="prep-screen">
-            <h2>Где эта точка?</h2>
-            <div class="map-container">
-                <img id="map-preview" src="images/map1.jpg" alt="Карта" style="max-width: 80vw; max-height: 60vh;">
+            <h1 style="color: #e74c3c; margin: 10px 0;">Время: <span id="timer-val">90</span></h1>
+            <div id="game-info" style="color: white; font-size: 18px;">
+                Раунд: <span id="round-num">1</span>/2 | 
+                Счёт: <span id="score-me">0</span> - <span id="score-opp">0</span>
             </div>
-            <button id="ready-btn" onclick="setReady()" style="padding: 15px 30px; background: #2ecc71; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 20px;">Готов!</button>
-            <p id="ready-status">Ждем готовности игроков...</p>
+            <div id="status" style="color: #aaa; margin-top: 5px;">Ожидание...</div>
         </div>
 
-        <div id="game-grid" style="display: none;">
+        <div id="prep-screen" class="prep-container">
+            <h2 style="color: white;">Где эта точка?</h2>
+            <div class="map-container" style="margin-bottom: 20px;">
+                <img id="map-preview" src="images/map1.jpg" alt="Карта" style="max-width: 90vw; max-height: 60vh; border: 2px solid #555;">
+            </div>
+            <button id="ready-btn" style="padding: 15px 40px; background: #2ecc71; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 22px; font-weight: bold;">ГОТОВ!</button>
+            <p id="ready-status" style="color: #888; margin-top: 10px;">Ждем готовности игроков...</p>
+        </div>
+
+        <div id="game-grid" style="display: none; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px;">
             <div class="option" onclick="sendChoice(0)"><img id="img0" src=""></div>
             <div class="option" onclick="sendChoice(1)"><img id="img1" src=""></div>
             <div class="option" onclick="sendChoice(2)"><img id="img2" src=""></div>
