@@ -1,6 +1,7 @@
+// Расширил gameData, чтобы тест был интереснее (3 раунда)
 const gameData = [
     { map: 'images/map1.jpg', correct: 0, images: ['images/r1_1.jpg', 'images/r1_2.jpg', 'images/r1_3.jpg', 'images/r1_4.jpg'] },
-    { map: 'images/map2.jpg', correct: 1, images: ['images/r2_1.jpg', 'images/r2_2.jpg', 'images/r2_3.jpg', 'images/r2_4.jpg'] }
+    { map: 'images/map2.jpg', correct: 1, images: ['images/r2_1.jpg', 'images/r2_2.jpg', 'images/r2_3.jpg', 'images/r2_4.jpg'] },
 ];
 
 const urlParams = new URLSearchParams(window.location.search);
@@ -98,7 +99,7 @@ window.setReady = function() {
     if (iAmReady) return;
     iAmReady = true;
     document.getElementById('ready-btn').disabled = true;
-    document.getElementById('ready-status').innerText = "Ты готов! Ждем соперника...";
+    document.getElementById('ready-status').innerText = "Ждем готовности...";
     if (conn && conn.open) conn.send({ type: 'ready' });
     checkStartRound();
 };
@@ -123,7 +124,6 @@ function loadRound() {
     document.getElementById('game-grid').style.pointerEvents = 'auto';
     document.querySelectorAll('.option').forEach(opt => opt.className = 'option');
     const round = gameData[currentRound];
-    // Обновляем текст в начале раунда
     document.getElementById('round-num').innerText = currentRound + 1;
     document.getElementById('map-preview').src = round.map;
     for (let i = 0; i < 4; i++) {
@@ -153,7 +153,7 @@ function sendChoice(index) {
     }
     revealAnswers(index, correctIndex);
     if (conn && conn.open) conn.send({ type: 'answer', choice: index });
-    document.getElementById('status').innerText = "Ждем ответ соперника...";
+    document.getElementById('status').innerText = "Ждем соперника...";
     checkRoundEnd();
 }
 
@@ -173,29 +173,66 @@ function checkRoundEnd() {
         document.getElementById('status').innerText = "Раунд завершен!";
         setTimeout(() => {
             currentRound++;
+            
+            const gameGrid = document.getElementById('game-grid');
+            
             if (currentRound < gameData.length) {
+                // ... (логика следующего раунда остается без изменений) ...
                 iAmReady = false; oppIsReady = false;
                 document.getElementById('ready-btn').disabled = false;
-                
                 const prepScreen = document.getElementById('prep-screen');
-                const gameGrid = document.getElementById('game-grid');
                 gameGrid.classList.remove('active');
-                
                 setTimeout(() => {
                     gameGrid.style.display = 'none';
-                    // ОБНОВЛЯЕМ НОМЕР РАУНДА ТУТ
+                    prepScreen.style.display = 'flex';
                     document.getElementById('round-num').innerText = currentRound + 1;
                     document.getElementById('map-preview').src = gameData[currentRound].map;
-                    prepScreen.style.display = 'flex';
                     setTimeout(() => prepScreen.classList.add('active'), 50);
                     document.getElementById('ready-status').innerText = "Ждем готовности...";
                     document.getElementById('status').innerText = "Ожидание...";
                 }, 500);
-
+                
             } else {
-                alert(`ФИНАЛ!\n${myNickname}: ${myScore}\n${oppNickname}: ${oppScore}`);
-                location.reload();
+                // ВОТ ОН - ФИНАЛ
+                gameGrid.classList.remove('active');
+                
+                setTimeout(() => {
+                    gameGrid.style.display = 'none';
+                    showResults(); // Показываем экран результатов
+                }, 500);
             }
         }, 3000);
     }
+}
+
+// Новая функция показа результатов
+function showResults() {
+    const resultsScreen = document.getElementById('results-screen');
+    const winnerNameSpan = document.getElementById('winner-name');
+    const winnerCircle = winnerNameSpan.parentElement;
+    const trophySpans = document.querySelectorAll('.trophy-icon');
+    const finalScoresSpan = document.getElementById('final-scores');
+    
+    // Прячем UI (таймер и счет во время игры)
+    document.getElementById('ui-layer').style.display = 'none';
+    
+    // Заполняем счет
+    finalScoresSpan.innerText = `${myScore} : ${oppScore}`;
+
+    resultsScreen.style.display = 'flex';
+    
+    // Логика победителя
+    if (myScore > oppScore) {
+        winnerNameSpan.innerText = myNickname;
+        winnerCircle.classList.add('winner-me'); // Зеленое свечение
+    } else if (oppScore > myScore) {
+        winnerNameSpan.innerText = oppNickname;
+        winnerCircle.classList.add('winner-opp'); // Красное свечение
+    } else {
+        winnerNameSpan.innerText = "НИЧЬЯ!";
+        trophySpans.forEach(t => t.style.display = 'none'); // Прячем кубки если ничья
+    }
+    
+    // Плавное появление
+    setTimeout(() => resultsScreen.classList.add('active'), 50);
 }
