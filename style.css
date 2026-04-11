@@ -1,7 +1,7 @@
 body {
     background-color: #0b0b0b;
     color: white;
-    font-family: 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     display: flex;
     flex-direction: column;
@@ -9,12 +9,12 @@ body {
     min-height: 100vh;
 }
 
-/* СТАРТОВЫЙ ЭКРАН - ТЕПЕРЬ ОН ПЕРЕКРЫВАЕТ ВСЁ */
+/* СТАРТОВЫЙ ЭКРАН */
 #setup-overlay {
     position: fixed !important;
     top: 0; left: 0; width: 100%; height: 100%;
     background: radial-gradient(circle at center, #1a1a1a 0%, #0f0f0f 100%) !important;
-    z-index: 999999 !important; /* Максимальный приоритет */
+    z-index: 999999 !important;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -27,17 +27,18 @@ body {
 #nick-input {
     background: #151515; border: 2px solid #333; padding: 15px;
     border-radius: 12px; color: white; font-size: 22px; text-align: center;
-    margin-bottom: 20px; width: 300px; outline: none;
+    margin-bottom: 20px; width: 300px; outline: none; transition: 0.3s;
 }
+
+#nick-input:focus { border-color: #2ecc71; }
 
 .menu-btn {
     padding: 16px 40px; background: #2ecc71; border: none; color: white;
     border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 18px;
-    width: 350px; transition: 0.2s; margin-bottom: 10px;
+    width: 350px; transition: all 0.3s ease; margin-bottom: 10px;
 }
 
-.menu-btn:hover { background: #27ae60; transform: scale(1.02); }
-
+.menu-btn:hover { background: #27ae60; transform: scale(1.02); box-shadow: 0 0 15px rgba(46,204,113,0.4); }
 .secondary-btn { background: transparent; border: 1px solid #444; color: #666; }
 
 .url-box {
@@ -48,39 +49,54 @@ body {
 
 /* ИГРОВОЙ ИНТЕРФЕЙС */
 #main-game-container {
-    width: 100%;
-    max-width: 1300px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
+    width: 100%; max-width: 1300px;
+    display: flex !important; flex-direction: column !important;
+    align-items: center; padding: 20px; box-sizing: border-box;
 }
 
-#ui-layer { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; }
-#timer-header { color: #e74c3c; font-size: 42px; margin: 0; }
+#ui-layer { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; width: 100%; }
+#timer-header { color: #e74c3c; font-size: 42px; margin: 0; font-weight: bold; }
+
 #game-info {
     display: grid; grid-template-columns: 1fr auto 1fr;
     align-items: center; gap: 20px; background: rgba(255,255,255,0.05);
-    padding: 12px 40px; border-radius: 60px; margin-top: 15px;
+    padding: 12px 40px; border-radius: 60px; margin-top: 15px; min-width: 450px;
 }
 
 #name-me { color: #2ecc71; font-weight: bold; text-align: right; font-size: 24px; }
 #name-opp { color: #ff4d4d; font-weight: bold; text-align: left; font-size: 24px; }
-#score-board { background: #000; padding: 5px 20px; border-radius: 30px; font-size: 28px; }
+#score-board { background: #000; padding: 5px 20px; border-radius: 30px; font-size: 28px; font-family: monospace;}
+#status { color: #aaa; margin-top: 10px; font-size: 16px; }
 
 /* КАРТА */
-.prep-container { display: flex; flex-direction: column; align-items: center; width: 100%; }
+.prep-container { display: flex !important; flex-direction: column !important; align-items: center; width: 100%; gap: 15px; }
+.prep-container h2 { width: 100%; text-align: center; margin: 10px 0; }
 #map-preview { height: 65vh; max-width: 95vw; border-radius: 20px; border: 2px solid #333; object-fit: contain; }
 
+/* КНОПКА ГОТОВ (ВОССТАНОВИЛ АНИМАЦИЮ) */
 #ready-btn {
     background: #2ecc71; color: white; border: none; padding: 18px 80px;
-    border-radius: 15px; font-size: 26px; font-weight: bold; cursor: pointer; margin-top: 20px;
+    border-radius: 15px; font-size: 26px; font-weight: bold; cursor: pointer; 
+    margin-top: 20px; min-width: 250px;
+    transition: all 0.3s ease; /* Плавность вернулась */
+}
+
+#ready-btn:hover:not(:disabled) {
+    transform: scale(1.05);
+    background: #27ae60;
+    box-shadow: 0 0 20px rgba(46, 204, 113, 0.4);
+}
+
+#ready-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+    filter: grayscale(30%); /* Визуально гасим кнопку */
 }
 
 /* КАРТОЧКИ */
-#game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; width: 100%; }
-.option { border-radius: 20px; overflow: hidden; transition: 0.3s; border: 8px solid transparent; cursor: pointer; }
-.option:hover { transform: translateY(-10px); }
+#game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; width: 100%; max-width: 1250px; }
+.option { border-radius: 20px; overflow: hidden; transition: 0.3s; border: 8px solid transparent; cursor: pointer; background: #1a1a1a; }
+.option:hover { transform: translateY(-10px); box-shadow: 0 15px 30px rgba(0,0,0,0.6); z-index: 5; }
 .option img { width: 100%; height: 480px; object-fit: cover; display: block; }
 
 .dimmed { opacity: 0.25; filter: grayscale(100%) blur(2px); }
