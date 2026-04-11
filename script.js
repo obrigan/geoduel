@@ -18,7 +18,6 @@ let oppHasAnswered = false;
 let timer;
 let timeLeft = 90;
 
-// Оверлей для создания комнаты
 const setupScreen = document.createElement('div');
 setupScreen.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:#111; color:white; z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-family:sans-serif;";
 
@@ -29,7 +28,7 @@ peer.on('open', (id) => {
         setupScreen.innerHTML = `
             <h1 style="color:#2ecc71">GeoDuel 1v1</h1>
             <p>Отправь эту ссылку другу:</p>
-            <div style="background:#222; padding:15px; border-radius:5px; margin:20px; font-size:14px; border:1px solid #444;">${gameUrl}</div>
+            <div style="background:#222; padding:15px; border-radius:5px; margin:20px; font-size:14px; border:1px solid #444; word-break:break-all;">${gameUrl}</div>
             <button id="btn-copy" style="padding:15px 30px; background:#2ecc71; border:none; color:white; border-radius:5px; cursor:pointer; font-weight:bold;">СКОПИРОВАТЬ</button>
             <button id="btn-start" style="margin-top:40px; background:none; border:1px solid #555; color:#777; cursor:pointer;">Я отправил, начать игру</button>
         `;
@@ -42,27 +41,12 @@ peer.on('open', (id) => {
         document.getElementById('btn-start').onclick = () => {
             setupScreen.remove();
             document.getElementById('main-game-container').style.display = 'block';
-            initReadyButton(); // Инициализируем кнопку при показе
         };
     } else {
         conn = peer.connect(peerIdFromUrl);
         setupConnection();
     }
 });
-
-function initReadyButton() {
-    const btn = document.getElementById('ready-btn');
-    if (btn) {
-        btn.onclick = () => {
-            iAmReady = true;
-            btn.disabled = true;
-            btn.style.opacity = "0.5";
-            document.getElementById('ready-status').innerText = "Ты готов! Ждем соперника...";
-            if (conn) conn.send({ type: 'ready' });
-            checkStartRound();
-        };
-    }
-}
 
 peer.on('connection', (c) => {
     conn = c;
@@ -73,8 +57,12 @@ function setupConnection() {
     conn.on('open', () => {
         document.getElementById('main-game-container').style.display = 'block';
         setupScreen.remove();
-        initReadyButton();
-        document.getElementById('status').innerText = "Соперник в сети!";
+        document.getElementById('status').innerText = "Соперник подключился!";
+
+        // ФИКС БАГА: Если я нажал "Готов" до прихода друга, дублируем сигнал ему!
+        if (iAmReady) {
+            conn.send({ type: 'ready' });
+        }
         
         conn.on('data', (data) => {
             if (data.type === 'ready') { oppIsReady = true; checkStartRound(); }
@@ -82,6 +70,26 @@ function setupConnection() {
         });
     });
 }
+
+// ВОЗВРАЩЕННАЯ ГЛОБАЛЬНАЯ ФУНКЦИЯ
+window.setReady = function() {
+    if (iAmReady) return; // Защита от случайного двойного клика
+    iAmReady = true;
+    
+    // Меняем визуал кнопки
+    const btn = document.getElementById('ready-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = "0.5";
+    }
+    document.getElementById('ready-status').innerText = "Ты готов! Ждем соперника...";
+
+    // Отправляем сигнал, если связь уже установлена
+    if (conn && conn.open) {
+        conn.send({ type: 'ready' });
+    }
+    checkStartRound();
+};
 
 function checkStartRound() {
     if (iAmReady && oppIsReady) {
@@ -119,8 +127,8 @@ function sendChoice(index) {
     const isCorrect = index === gameData[currentRound].correct;
     if (isCorrect) myScore++;
     document.getElementById('score-me').innerText = myScore;
-    if (conn) conn.send({ type: 'answer', choice: index });
-    document.getElementById('status').innerText = "Ждем соперника...";
+    if (conn && conn.open) conn.send({ type: 'answer', choice: index });
+    document.getElementById('status').innerText = "Ждем ответ соперника...";
     checkRoundEnd();
 }
 
