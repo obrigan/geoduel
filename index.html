@@ -2,34 +2,37 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoDuel 1v1</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
-    <div class="ui">
-        <div id="room-info">Ссылка: <b id="room-link">...</b></div>
-        <div id="timer">Время: 90</div>
-        <div class="stats">
-            <div>Раунд: <span id="round-num">1</span>/2</div>
-            <div>Счёт: <span id="score-me">0</span> - <span id="score-opp">0</span></div>
+
+    <div id="main-game-container" style="display: none;">
+        <div id="ui-layer">
+            <div id="room-info">Ссылка: <span id="room-link">Генерация...</span></div>
+            <div id="timer">Время: 90</div>
+            <div id="round-info">Раунд: <span id="round-num">1</span>/2</div>
+            <div id="score">Счёт: <span id="score-me">0</span> - <span id="score-opp">0</span></div>
+            <div id="status">Ожидание соперника...</div>
         </div>
-        <div id="status">Ожидание соперника...</div>
-    </div>
 
-    <div id="prep-screen" class="overlay">
-        <h2>Где эта точка?</h2>
-        <img id="map-preview" src="" style="max-width: 80%; border: 3px solid white;">
-        <br>
-        <button id="ready-btn" onclick="setReady()">Я ГОТОВ</button>
-        <p id="ready-status">Ждем готовности игроков...</p>
-    </div>
+        <div id="prep-screen">
+            <h2>Где эта точка?</h2>
+            <div class="map-container">
+                <img id="map-preview" src="" alt="Карта">
+            </div>
+            <button id="ready-btn" onclick="setReady()">Готов!</button>
+            <p id="ready-status">Ждем готовности игроков...</p>
+        </div>
 
-    <div class="game-grid" id="game-grid" style="display: none;">
-        <div class="option" onclick="sendChoice(0)"><img id="img0" src=""></div>
-        <div class="option" onclick="sendChoice(1)"><img id="img1" src=""></div>
-        <div class="option" onclick="sendChoice(2)"><img id="img2" src=""></div>
-        <div class="option" onclick="sendChoice(3)"><img id="img3" src=""></div>
+        <div id="game-grid" style="display: none;">
+            <div class="option" onclick="sendChoice(0)"><img id="img0" src=""></div>
+            <div class="option" onclick="sendChoice(1)"><img id="img1" src=""></div>
+            <div class="option" onclick="sendChoice(2)"><img id="img2" src=""></div>
+            <div class="option" onclick="sendChoice(3)"><img id="img3" src=""></div>
+        </div>
     </div>
 
     <script src="script.js"></script>
