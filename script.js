@@ -18,38 +18,51 @@ let oppHasAnswered = false;
 let timer;
 let timeLeft = 90;
 
-// Экран настройки
+// Оверлей для создания комнаты
 const setupScreen = document.createElement('div');
-setupScreen.id = "setup-overlay";
-setupScreen.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:#1a1a1a; color:white; z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-family:Arial, sans-serif;";
+setupScreen.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:#111; color:white; z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-family:sans-serif;";
 
 peer.on('open', (id) => {
     if (!peerIdFromUrl) {
         document.body.appendChild(setupScreen);
         const gameUrl = window.location.origin + window.location.pathname + '?peer=' + id;
-        
         setupScreen.innerHTML = `
-            <h1 style="color:#2ecc71;">GeoDuel 1v1</h1>
-            <p>Скопируй ссылку для друга:</p>
-            <div style="background:#333; padding:15px; border-radius:8px; margin:20px 0; font-family:monospace; font-size:12px;">${gameUrl}</div>
+            <h1 style="color:#2ecc71">GeoDuel 1v1</h1>
+            <p>Отправь эту ссылку другу:</p>
+            <div style="background:#222; padding:15px; border-radius:5px; margin:20px; font-size:14px; border:1px solid #444;">${gameUrl}</div>
             <button id="btn-copy" style="padding:15px 30px; background:#2ecc71; border:none; color:white; border-radius:5px; cursor:pointer; font-weight:bold;">СКОПИРОВАТЬ</button>
-            <button id="btn-start" style="margin-top:30px; background:none; border:1px solid #555; color:#888; cursor:pointer;">Я отправил, к игре!</button>
+            <button id="btn-start" style="margin-top:40px; background:none; border:1px solid #555; color:#777; cursor:pointer;">Я отправил, начать игру</button>
         `;
 
         document.getElementById('btn-copy').onclick = () => {
             navigator.clipboard.writeText(gameUrl);
-            document.getElementById('btn-copy').innerText = "СКОПИРОВАНО!";
+            document.getElementById('btn-copy').innerText = "ГОТОВО!";
         };
 
         document.getElementById('btn-start').onclick = () => {
-            setupScreen.style.display = 'none';
+            setupScreen.remove();
             document.getElementById('main-game-container').style.display = 'block';
+            initReadyButton(); // Инициализируем кнопку при показе
         };
     } else {
         conn = peer.connect(peerIdFromUrl);
         setupConnection();
     }
 });
+
+function initReadyButton() {
+    const btn = document.getElementById('ready-btn');
+    if (btn) {
+        btn.onclick = () => {
+            iAmReady = true;
+            btn.disabled = true;
+            btn.style.opacity = "0.5";
+            document.getElementById('ready-status').innerText = "Ты готов! Ждем соперника...";
+            if (conn) conn.send({ type: 'ready' });
+            checkStartRound();
+        };
+    }
+}
 
 peer.on('connection', (c) => {
     conn = c;
@@ -59,22 +72,15 @@ peer.on('connection', (c) => {
 function setupConnection() {
     conn.on('open', () => {
         document.getElementById('main-game-container').style.display = 'block';
-        if (document.getElementById('setup-overlay')) document.getElementById('setup-overlay').style.display = 'none';
-        document.getElementById('status').innerText = "Противник подключен!";
+        setupScreen.remove();
+        initReadyButton();
+        document.getElementById('status').innerText = "Соперник в сети!";
         
         conn.on('data', (data) => {
             if (data.type === 'ready') { oppIsReady = true; checkStartRound(); }
             if (data.type === 'answer') { oppHasAnswered = true; processOpponentAnswer(data.choice); checkRoundEnd(); }
         });
     });
-}
-
-function setReady() {
-    iAmReady = true;
-    document.getElementById('ready-btn').disabled = true;
-    document.getElementById('ready-status').innerText = "Ждем соперника...";
-    if (conn) conn.send({ type: 'ready' });
-    checkStartRound();
 }
 
 function checkStartRound() {
@@ -88,6 +94,7 @@ function checkStartRound() {
 function loadRound() {
     hasAnswered = false; oppHasAnswered = false; timeLeft = 90;
     const round = gameData[currentRound];
+    document.getElementById('round-num').innerText = currentRound + 1;
     document.getElementById('map-preview').src = round.map;
     for (let i = 0; i < 4; i++) {
         document.getElementById(`img${i}`).src = round.images[i];
@@ -100,7 +107,7 @@ function startTimer() {
     clearInterval(timer);
     timer = setInterval(() => {
         timeLeft--;
-        document.getElementById('timer').innerText = `Время: ${timeLeft}`;
+        document.getElementById('timer-val').innerText = timeLeft;
         if (timeLeft <= 0) { clearInterval(timer); if (!hasAnswered) sendChoice(-1); }
     }, 1000);
 }
@@ -129,12 +136,15 @@ function checkRoundEnd() {
             currentRound++;
             if (currentRound < gameData.length) {
                 iAmReady = false; oppIsReady = false;
-                document.getElementById('ready-btn').disabled = false;
+                const btn = document.getElementById('ready-btn');
+                btn.disabled = false;
+                btn.style.opacity = "1";
                 document.getElementById('prep-screen').style.display = 'flex';
                 document.getElementById('game-grid').style.display = 'none';
                 document.getElementById('map-preview').src = gameData[currentRound].map;
+                document.getElementById('ready-status').innerText = "Ждем готовности игроков...";
             } else {
-                alert("Игра окончена!");
+                alert(`Игра окончена! Финальный счет: ${myScore} - ${oppScore}`);
             }
         }, 3000);
     }
