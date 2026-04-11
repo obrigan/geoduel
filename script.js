@@ -32,12 +32,10 @@ peer.on('open', (id) => {
             <button id="btn-copy" style="padding:15px 30px; background:#2ecc71; border:none; color:white; border-radius:5px; cursor:pointer; font-weight:bold;">СКОПИРОВАТЬ</button>
             <button id="btn-start" style="margin-top:40px; background:none; border:1px solid #555; color:#777; cursor:pointer;">Я отправил, начать игру</button>
         `;
-
         document.getElementById('btn-copy').onclick = () => {
             navigator.clipboard.writeText(gameUrl);
             document.getElementById('btn-copy').innerText = "ГОТОВО!";
         };
-
         document.getElementById('btn-start').onclick = () => {
             setupScreen.remove();
             document.getElementById('main-game-container').style.display = 'block';
@@ -56,13 +54,9 @@ peer.on('connection', (c) => {
 function setupConnection() {
     conn.on('open', () => {
         document.getElementById('main-game-container').style.display = 'block';
-        setupScreen.remove();
+        if (document.body.contains(setupScreen)) setupScreen.remove();
         document.getElementById('status').innerText = "Соперник подключился!";
-
-        // ФИКС БАГА: Если я нажал "Готов" до прихода друга, дублируем сигнал ему!
-        if (iAmReady) {
-            conn.send({ type: 'ready' });
-        }
+        if (iAmReady && conn && conn.open) conn.send({ type: 'ready' });
         
         conn.on('data', (data) => {
             if (data.type === 'ready') { oppIsReady = true; checkStartRound(); }
@@ -71,25 +65,16 @@ function setupConnection() {
     });
 }
 
-// ВОЗВРАЩЕННАЯ ГЛОБАЛЬНАЯ ФУНКЦИЯ
-window.setReady = function() {
-    if (iAmReady) return; // Защита от случайного двойного клика
+function setReady() {
+    if (iAmReady) return;
     iAmReady = true;
-    
-    // Меняем визуал кнопки
     const btn = document.getElementById('ready-btn');
-    if (btn) {
-        btn.disabled = true;
-        btn.style.opacity = "0.5";
-    }
+    btn.disabled = true;
+    btn.style.opacity = "0.5";
     document.getElementById('ready-status').innerText = "Ты готов! Ждем соперника...";
-
-    // Отправляем сигнал, если связь уже установлена
-    if (conn && conn.open) {
-        conn.send({ type: 'ready' });
-    }
+    if (conn && conn.open) conn.send({ type: 'ready' });
     checkStartRound();
-};
+}
 
 function checkStartRound() {
     if (iAmReady && oppIsReady) {
@@ -101,12 +86,17 @@ function checkStartRound() {
 
 function loadRound() {
     hasAnswered = false; oppHasAnswered = false; timeLeft = 90;
+    document.getElementById('game-grid').style.pointerEvents = 'auto'; // Разблокируем клики
+    
+    // Снимаем старую подсветку
+    const options = document.querySelectorAll('.option');
+    options.forEach(opt => opt.style.outline = "none");
+
     const round = gameData[currentRound];
     document.getElementById('round-num').innerText = currentRound + 1;
     document.getElementById('map-preview').src = round.map;
     for (let i = 0; i < 4; i++) {
         document.getElementById(`img${i}`).src = round.images[i];
-        document.getElementById(`img${i}`).parentElement.className = 'option';
     }
     startTimer();
 }
@@ -120,16 +110,42 @@ function startTimer() {
     }, 1000);
 }
 
+// ОСНОВНАЯ ПРАВКА ТУТ
 function sendChoice(index) {
     if (hasAnswered) return;
     hasAnswered = true;
     clearInterval(timer);
-    const isCorrect = index === gameData[currentRound].correct;
-    if (isCorrect) myScore++;
+    
+    document.getElementById('game-grid').style.pointerEvents = 'none'; // Блокируем сетку
+
+    const correctIndex = gameData[currentRound].correct;
+    const isCorrect = (index === correctIndex);
+
+    if (isCorrect) {
+        myScore++;
+    }
     document.getElementById('score-me').innerText = myScore;
+
+    // ВИЗУАЛИЗАЦИЯ
+    revealAnswers(index, correctIndex);
+
     if (conn && conn.open) conn.send({ type: 'answer', choice: index });
     document.getElementById('status').innerText = "Ждем ответ соперника...";
     checkRoundEnd();
+}
+
+function revealAnswers(myChoice, correctChoice) {
+    const options = document.querySelectorAll('.option');
+    
+    // 1. Подсвечиваем правильный ответ всегда (зеленым)
+    options[correctChoice].style.outline = "8px solid #2ecc71";
+    options[correctChoice].style.zIndex = "10";
+
+    // 2. Если мы ошиблись, подсвечиваем наш выбор красным
+    if (myChoice !== correctChoice && myChoice !== -1) {
+        options[myChoice].style.outline = "8px solid #e74c3c";
+        options[myChoice].style.zIndex = "5";
+    }
 }
 
 function processOpponentAnswer(choice) {
@@ -140,19 +156,21 @@ function processOpponentAnswer(choice) {
 
 function checkRoundEnd() {
     if (hasAnswered && oppHasAnswered) {
+        document.getElementById('status').innerText = "Раунд завершен!";
         setTimeout(() => {
             currentRound++;
             if (currentRound < gameData.length) {
                 iAmReady = false; oppIsReady = false;
                 const btn = document.getElementById('ready-btn');
-                btn.disabled = false;
-                btn.style.opacity = "1";
+                btn.disabled = false; btn.style.opacity = "1";
                 document.getElementById('prep-screen').style.display = 'flex';
                 document.getElementById('game-grid').style.display = 'none';
                 document.getElementById('map-preview').src = gameData[currentRound].map;
                 document.getElementById('ready-status').innerText = "Ждем готовности игроков...";
+                document.getElementById('status').innerText = "Ожидание...";
             } else {
                 alert(`Игра окончена! Финальный счет: ${myScore} - ${oppScore}`);
+                location.reload(); // Перезагрузка для новой игры
             }
         }, 3000);
     }
