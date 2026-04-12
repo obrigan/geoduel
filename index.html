@@ -43,16 +43,15 @@
                 </div>
 
                 <div id="game-grid">
-                    <div class="option" onclick="sendChoice(0)"><img id="img0" src=""></div>
-                    <div class="option" onclick="sendChoice(1)"><img id="img1" src=""></div>
-                    <div class="option" onclick="sendChoice(2)"><img id="img2" src=""></div>
-                    <div class="option" onclick="sendChoice(3)"><img id="img3" src=""></div>
+                    <div class="option" onclick="selectCard(0)"><img id="img0" src=""></div>
+                    <div class="option" onclick="selectCard(1)"><img id="img1" src=""></div>
+                    <div class="option" onclick="selectCard(2)"><img id="img2" src=""></div>
+                    <div class="option" onclick="selectCard(3)"><img id="img3" src=""></div>
                 </div>
             </div>
 
             <div id="results-screen" class="prep-container">
                 <h1 id="results-title" style="color:#e0e0e0; font-size: 50px; margin-bottom: 30px;">ИТОГИ</h1>
-                
                 <div class="winner-display">
                     <span class="trophy-icon">🏆</span>
                     <div id="winner-circle-element" class="winner-circle">
@@ -60,11 +59,17 @@
                     </div>
                     <span class="trophy-icon">🏆</span>
                 </div>
-                
                 <div id="final-scores" style="font-size: 32px; font-family: monospace; color: white; margin: 10px 0;"></div>
-                
                 <button class="menu-btn" style="margin-top: 30px;" onclick="location.reload()">ИГРАТЬ ЕЩЕ</button>
             </div>
+        </div>
+    </div>
+
+    <div id="zoom-overlay" onclick="closeZoom()">
+        <div class="zoom-content" onclick="event.stopPropagation()">
+            <img id="zoomed-img" src="">
+            <button id="confirm-choice-btn" class="menu-btn" onclick="confirmChoice()">ОТВЕТИТЬ</button>
+            <p style="color: #aaa; margin-top: 10px; cursor: pointer;" onclick="closeZoom()">назад к выбору</p>
         </div>
     </div>
 
