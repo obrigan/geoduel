@@ -3,6 +3,14 @@ const gameData = [
     { map: 'images/map2.jpg', correct: 1, images: ['images/r2_1.jpg', 'images/r2_2.jpg', 'images/r2_3.jpg', 'images/r2_4.jpg'] }
 ];
 
+// ЗВУКОВЫЕ ЭФФЕКТЫ (Громкость снижена для комфорта)
+const bgmMenu = new Audio('sounds/menu.mp3'); bgmMenu.loop = true; bgmMenu.volume = 0.15;
+const bgmHurry = new Audio('sounds/hurry.mp3'); bgmHurry.loop = true; bgmHurry.volume = 0.2;
+const sfxPowerup = new Audio('sounds/powerup.mp3'); sfxPowerup.volume = 0.3;
+const sfxCorrect = new Audio('sounds/correct.mp3'); sfxCorrect.volume = 0.3;
+const sfxWrong = new Audio('sounds/wrong.mp3'); sfxWrong.volume = 0.3;
+const sfxVictory = new Audio('sounds/victory.mp3'); sfxVictory.volume = 0.3;
+
 const urlParams = new URLSearchParams(window.location.search);
 let peerIdFromUrl = urlParams.get('peer');
 const peer = new Peer();
@@ -29,6 +37,13 @@ let timeLeft = 90;
 const setupScreen = document.createElement('div');
 setupScreen.id = "setup-overlay";
 
+// Запуск музыки в меню при первом клике на экран (требование браузеров)
+document.body.addEventListener('click', () => {
+    if (!isGameStarted && bgmMenu.paused) {
+        bgmMenu.play().catch(() => console.log("Автоплей звука заблокирован браузером"));
+    }
+}, { once: true });
+
 peer.on('open', (id) => {
     document.body.appendChild(setupScreen);
     const gameUrl = window.location.origin + window.location.pathname + '?peer=' + id;
@@ -46,6 +61,7 @@ peer.on('open', (id) => {
             document.getElementById('btn-copy').innerText = "ССЫЛКА В БУФЕРЕ!";
         };
         document.getElementById('btn-start').onclick = () => {
+            bgmMenu.pause(); // Выключаем музыку меню
             myNickname = document.getElementById('nick-input').value || "Хост";
             document.getElementById('name-me').innerText = myNickname;
             isGameStarted = true;
@@ -60,6 +76,7 @@ peer.on('open', (id) => {
             <button id="btn-join" class="menu-btn">ПРИСОЕДИНИТЬСЯ</button>
         `;
         document.getElementById('btn-join').onclick = () => {
+            bgmMenu.pause(); // Выключаем музыку меню
             myNickname = document.getElementById('nick-input').value || "Гость";
             document.getElementById('name-me').innerText = myNickname;
             isGameStarted = true;
@@ -110,7 +127,7 @@ window.setReady = function() {
 function checkStartRound() {
     if (iAmReady && oppIsReady) {
         const prepScreen = document.getElementById('prep-screen');
-        const roundScreen = document.getElementById('round-screen'); // Управляем общим экраном раунда
+        const roundScreen = document.getElementById('round-screen'); 
         
         prepScreen.classList.remove('active');
         setTimeout(() => {
@@ -127,6 +144,7 @@ window.use5050 = function() {
     
     used5050 = true;
     hintUsedThisRound = true;
+    sfxPowerup.play().catch(()=>{}); // Звук подсказки
     updatePowerupUI();
 
     const correct = gameData[currentRound].correct;
@@ -146,10 +164,17 @@ window.useTimeBoost = function() {
 
     usedTimeBoost = true;
     hintUsedThisRound = true;
+    sfxPowerup.play().catch(()=>{}); // Звук подсказки
     updatePowerupUI();
 
     timeLeft += 30;
     document.getElementById('timer-val').innerText = timeLeft;
+    
+    // Если время стало больше 10 секунд, выключаем напряженную музыку
+    if (timeLeft > 10) {
+        bgmHurry.pause();
+        bgmHurry.currentTime = 0;
+    }
     
     document.getElementById('timer-header').style.color = '#3498db';
     setTimeout(() => document.getElementById('timer-header').style.color = '#e74c3c', 1000);
@@ -171,6 +196,10 @@ function loadRound() {
     oppHasAnswered = false; 
     timeLeft = 90;
     hintUsedThisRound = false;
+
+    // Сброс музыки спешки
+    bgmHurry.pause();
+    bgmHurry.currentTime = 0;
 
     document.getElementById('status').innerText = "Твой ход!";
     document.getElementById('game-grid').style.pointerEvents = 'auto';
@@ -194,7 +223,16 @@ function startTimer() {
     timer = setInterval(() => {
         timeLeft--;
         document.getElementById('timer-val').innerText = timeLeft;
-        if (timeLeft <= 0) { clearInterval(timer); if (!hasAnswered) sendChoice(-1); }
+        
+        // Включаем тревожную музыку на 10 секундах
+        if (timeLeft === 10 && !hasAnswered) {
+            bgmHurry.play().catch(()=>{});
+        }
+
+        if (timeLeft <= 0) { 
+            clearInterval(timer); 
+            if (!hasAnswered) sendChoice(-1); 
+        }
     }, 1000);
 }
 
@@ -204,6 +242,11 @@ function sendChoice(index) {
     
     hasAnswered = true;
     clearInterval(timer);
+    
+    // Останавливаем тревожную музыку при выборе
+    bgmHurry.pause();
+    bgmHurry.currentTime = 0;
+
     document.getElementById('game-grid').style.pointerEvents = 'none';
     updatePowerupUI();
 
@@ -211,7 +254,11 @@ function sendChoice(index) {
     if (index === correctIndex) {
         myScore++;
         document.getElementById('score-me').innerText = myScore;
+        sfxCorrect.play().catch(()=>{}); // Звук правильного ответа
+    } else {
+        if (index !== -1) sfxWrong.play().catch(()=>{}); // Звук ошибки
     }
+    
     revealAnswers(index, correctIndex);
     if (conn && conn.open) conn.send({ type: 'answer', choice: index });
     document.getElementById('status').innerText = "Ждем ответ...";
@@ -264,6 +311,8 @@ function checkRoundEnd() {
 }
 
 function showResults() {
+    sfxVictory.play().catch(()=>{}); // Фанфары в финале!
+
     const resultsScreen = document.getElementById('results-screen');
     const winnerNameSpan = document.getElementById('winner-name');
     const winnerCircle = document.getElementById('winner-circle-element');
