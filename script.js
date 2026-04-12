@@ -1,12 +1,12 @@
 const gameData = [
     { map: 'images/map1.jpg', correct: 0, images: ['images/r1_1.jpg', 'images/r1_2.jpg', 'images/r1_3.jpg', 'images/r1_4.jpg'] },
     { map: 'images/map2.jpg', correct: 1, images: ['images/r2_1.jpg', 'images/r2_2.jpg', 'images/r2_3.jpg', 'images/r2_4.jpg'] },
-    { map: 'images/map3.jpg', correct: 0, images: ['images/r3_1.jpg', 'images/r4_2.jpg', 'images/r4_3.jpg', 'images/r4_4.jpg'] },
-    { map: 'images/map4.jpg', correct: 3, images: ['images/r3_1.jpg', 'images/r4_2.jpg', 'images/r4_3.jpg', 'images/r4_4.jpg'] },
-    { map: 'images/map5.jpg', correct: 2, images: ['images/r3_1.jpg', 'images/r4_2.jpg', 'images/r4_3.jpg', 'images/r4_4.jpg'] },
-    { map: 'images/map6.jpg', correct: 2, images: ['images/r3_1.jpg', 'images/r4_2.jpg', 'images/r4_3.jpg', 'images/r4_4.jpg'] },
-    { map: 'images/map7.jpg', correct: 1, images: ['images/r3_1.jpg', 'images/r4_2.jpg', 'images/r4_3.jpg', 'images/r4_4.jpg'] },
-    { map: 'images/map8.jpg', correct: 3, images: ['images/r3_1.jpg', 'images/r4_2.jpg', 'images/r4_3.jpg', 'images/r4_4.jpg'] }
+    { map: 'images/map3.jpg', correct: 0, images: ['images/r3_1.jpg', 'images/r3_2.jpg', 'images/r3_3.jpg', 'images/r3_4.jpg'] },
+    { map: 'images/map4.jpg', correct: 3, images: ['images/r4_1.jpg', 'images/r4_2.jpg', 'images/r4_3.jpg', 'images/r4_4.jpg'] },
+    { map: 'images/map5.jpg', correct: 2, images: ['images/r5_1.jpg', 'images/r5_2.jpg', 'images/r5_3.jpg', 'images/r5_4.jpg'] },
+    { map: 'images/map6.jpg', correct: 2, images: ['images/r6_1.jpg', 'images/r6_2.jpg', 'images/r6_3.jpg', 'images/r6_4.jpg'] },
+    { map: 'images/map7.jpg', correct: 1, images: ['images/r7_1.jpg', 'images/r7_2.jpg', 'images/r7_3.jpg', 'images/r7_4.jpg'] },
+    { map: 'images/map8.jpg', correct: 3, images: ['images/r8_1.jpg', 'images/r8_2.jpg', 'images/r8_3.jpg', 'images/r8_4.jpg'] }
 ];
 
 // ЗВУКОВЫЕ ЭФФЕКТЫ (Громкость музыки в меню снижена в 2 раза до 0.07)
