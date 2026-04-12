@@ -5,11 +5,11 @@ const gameData = [
 
 // ЗВУКОВЫЕ ЭФФЕКТЫ (Громкость музыки в меню снижена в 2 раза до 0.07)
 const bgmMenu = new Audio('sounds/menu.mp3'); bgmMenu.loop = true; bgmMenu.volume = 0.07;
-const bgmHurry = new Audio('sounds/hurry.mp3'); bgmHurry.loop = true; bgmHurry.volume = 0.2;
-const sfxPowerup = new Audio('sounds/powerup.mp3'); sfxPowerup.volume = 0.3;
-const sfxCorrect = new Audio('sounds/correct.mp3'); sfxCorrect.volume = 0.3;
-const sfxWrong = new Audio('sounds/wrong.mp3'); sfxWrong.volume = 0.3;
-const sfxVictory = new Audio('sounds/victory.mp3'); sfxVictory.volume = 0.3;
+const bgmHurry = new Audio('sounds/hurry.mp3'); bgmHurry.loop = true; bgmHurry.volume = 0.13;
+const sfxPowerup = new Audio('sounds/powerup.mp3'); sfxPowerup.volume = 0.2;
+const sfxCorrect = new Audio('sounds/correct.mp3'); sfxCorrect.volume = 0.2;
+const sfxWrong = new Audio('sounds/wrong.mp3'); sfxWrong.volume = 0.2;
+const sfxVictory = new Audio('sounds/victory.mp3'); sfxVictory.volume = 0.2;
 
 const urlParams = new URLSearchParams(window.location.search);
 let peerIdFromUrl = urlParams.get('peer');
