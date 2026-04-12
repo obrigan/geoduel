@@ -9,7 +9,6 @@ const gameData = [
     { map: 'images/map8.jpg', correct: 3, images: ['images/r8_1.jpg', 'images/r8_2.jpg', 'images/r8_3.jpg', 'images/r8_4.jpg'] }
 ];
 
-// ЗВУКОВЫЕ ЭФФЕКТЫ (Громкость музыки в меню снижена в 2 раза до 0.07)
 const bgmMenu = new Audio('sounds/menu.mp3'); bgmMenu.loop = true; bgmMenu.volume = 0.07;
 const bgmHurry = new Audio('sounds/hurry.mp3'); bgmHurry.loop = true; bgmHurry.volume = 0.13;
 const sfxPowerup = new Audio('sounds/powerup.mp3'); sfxPowerup.volume = 0.2;
@@ -40,13 +39,15 @@ let oppHasAnswered = false;
 let timer;
 let timeLeft = 90;
 
+// ПЕРЕМЕННАЯ ДЛЯ ВРЕМЕННОГО ВЫБОРА
+let tempSelectedIdx = -1;
+
 const setupScreen = document.createElement('div');
 setupScreen.id = "setup-overlay";
 
-// Запуск музыки в меню при первом клике на экран
 document.body.addEventListener('click', () => {
     if (!isGameStarted && bgmMenu.paused) {
-        bgmMenu.play().catch(() => console.log("Автоплей звука заблокирован браузером"));
+        bgmMenu.play().catch(() => console.log("Автоплей заблокирован"));
     }
 }, { once: true });
 
@@ -134,7 +135,6 @@ function checkStartRound() {
     if (iAmReady && oppIsReady) {
         const prepScreen = document.getElementById('prep-screen');
         const roundScreen = document.getElementById('round-screen'); 
-        
         prepScreen.classList.remove('active');
         setTimeout(() => {
             prepScreen.style.display = 'none';
@@ -145,20 +145,42 @@ function checkStartRound() {
     }
 }
 
+// ЛОГИКА ЗУМА И ВЫБОРА
+window.selectCard = function(index) {
+    if (hasAnswered) return;
+    // Если 50/50 убрал эту карту, не даем ее зумить
+    if (document.querySelectorAll('.option')[index].classList.contains('eliminated')) return;
+
+    tempSelectedIdx = index;
+    const imgSrc = document.getElementById(`img${index}`).src;
+    
+    // Показываем оверлей
+    document.getElementById('zoomed-img').src = imgSrc;
+    document.getElementById('zoom-overlay').style.display = 'flex';
+
+    // Подсвечиваем в основной сетке (косметически)
+    document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected-state'));
+    document.querySelectorAll('.option')[index].classList.add('selected-state');
+};
+
+window.closeZoom = function() {
+    document.getElementById('zoom-overlay').style.display = 'none';
+};
+
+window.confirmChoice = function() {
+    if (tempSelectedIdx === -1) return;
+    closeZoom();
+    sendChoice(tempSelectedIdx);
+};
+
 window.use5050 = function() {
     if (used5050 || hintUsedThisRound || hasAnswered) return;
-    
-    used5050 = true;
-    hintUsedThisRound = true;
-    sfxPowerup.play().catch(()=>{}); 
-    updatePowerupUI();
-
+    used5050 = true; hintUsedThisRound = true;
+    sfxPowerup.play().catch(()=>{}); updatePowerupUI();
     const correct = gameData[currentRound].correct;
     let wrongIndices = [0, 1, 2, 3].filter(i => i !== correct);
-    
     wrongIndices.sort(() => Math.random() - 0.5);
     const toRemove = wrongIndices.slice(0, 2);
-
     toRemove.forEach(idx => {
         const opt = document.querySelectorAll('.option')[idx];
         opt.classList.add('eliminated');
@@ -167,20 +189,11 @@ window.use5050 = function() {
 
 window.useTimeBoost = function() {
     if (usedTimeBoost || hintUsedThisRound || hasAnswered) return;
-
-    usedTimeBoost = true;
-    hintUsedThisRound = true;
-    sfxPowerup.play().catch(()=>{}); 
-    updatePowerupUI();
-
+    usedTimeBoost = true; hintUsedThisRound = true;
+    sfxPowerup.play().catch(()=>{}); updatePowerupUI();
     timeLeft += 30;
     document.getElementById('timer-val').innerText = timeLeft;
-    
-    if (timeLeft > 10) {
-        bgmHurry.pause();
-        bgmHurry.currentTime = 0;
-    }
-    
+    if (timeLeft > 10) { bgmHurry.pause(); bgmHurry.currentTime = 0; }
     document.getElementById('timer-header').style.color = '#3498db';
     setTimeout(() => document.getElementById('timer-header').style.color = '#e74c3c', 1000);
 };
@@ -188,31 +201,20 @@ window.useTimeBoost = function() {
 function updatePowerupUI() {
     const btn50 = document.getElementById('btn-5050');
     const btnTime = document.getElementById('btn-time');
-
     if (used5050 || hintUsedThisRound || hasAnswered) btn50.classList.add('disabled');
     else btn50.classList.remove('disabled');
-
     if (usedTimeBoost || hintUsedThisRound || hasAnswered) btnTime.classList.add('disabled');
     else btnTime.classList.remove('disabled');
 }
 
 function loadRound() {
-    hasAnswered = false; 
-    oppHasAnswered = false; 
-    timeLeft = 90;
-    hintUsedThisRound = false;
-
-    bgmHurry.pause();
-    bgmHurry.currentTime = 0;
-
+    hasAnswered = false; oppHasAnswered = false; timeLeft = 90;
+    hintUsedThisRound = false; tempSelectedIdx = -1;
+    bgmHurry.pause(); bgmHurry.currentTime = 0;
     document.getElementById('status').innerText = "Твой ход!";
     document.getElementById('game-grid').style.pointerEvents = 'auto';
-    
-    const options = document.querySelectorAll('.option');
-    options.forEach(opt => opt.className = 'option');
-    
+    document.querySelectorAll('.option').forEach(opt => opt.className = 'option');
     updatePowerupUI();
-
     const round = gameData[currentRound];
     document.getElementById('round-num').innerText = currentRound + 1;
     document.getElementById('map-preview').src = round.map;
@@ -227,28 +229,16 @@ function startTimer() {
     timer = setInterval(() => {
         timeLeft--;
         document.getElementById('timer-val').innerText = timeLeft;
-        
-        if (timeLeft === 10 && !hasAnswered) {
-            bgmHurry.play().catch(()=>{});
-        }
-
-        if (timeLeft <= 0) { 
-            clearInterval(timer); 
-            if (!hasAnswered) sendChoice(-1); 
-        }
+        if (timeLeft === 10 && !hasAnswered) bgmHurry.play().catch(()=>{});
+        if (timeLeft <= 0) { clearInterval(timer); if (!hasAnswered) { closeZoom(); sendChoice(-1); } }
     }, 1000);
 }
 
 function sendChoice(index) {
     if (hasAnswered) return;
-    if (index !== -1 && document.querySelectorAll('.option')[index].classList.contains('eliminated')) return;
-    
     hasAnswered = true;
     clearInterval(timer);
-    
-    bgmHurry.pause();
-    bgmHurry.currentTime = 0;
-
+    bgmHurry.pause(); bgmHurry.currentTime = 0;
     document.getElementById('game-grid').style.pointerEvents = 'none';
     updatePowerupUI();
 
@@ -269,7 +259,10 @@ function sendChoice(index) {
 
 function revealAnswers(myChoice, correctChoice) {
     const options = document.querySelectorAll('.option');
-    options.forEach(opt => opt.classList.add('dimmed'));
+    options.forEach(opt => {
+        opt.classList.add('dimmed');
+        opt.classList.remove('selected-state'); // Убираем синюю подсветку
+    });
     options[correctChoice].classList.remove('dimmed');
     options[correctChoice].classList.add('correct-choice');
     if (myChoice !== correctChoice && myChoice !== -1) {
@@ -284,21 +277,18 @@ function checkRoundEnd() {
         setTimeout(() => {
             currentRound++;
             const roundScreen = document.getElementById('round-screen');
-
             if (currentRound < gameData.length) {
                 iAmReady = false; oppIsReady = false;
                 document.getElementById('ready-btn').disabled = false;
                 const prepScreen = document.getElementById('prep-screen');
-                
                 roundScreen.classList.remove('active');
-
                 setTimeout(() => {
                     roundScreen.style.display = 'none';
                     prepScreen.style.display = 'flex';
                     document.getElementById('round-num').innerText = currentRound + 1;
                     document.getElementById('map-preview').src = gameData[currentRound].map;
                     setTimeout(() => prepScreen.classList.add('active'), 50);
-                    document.getElementById('ready-status').innerText = "Ждем готовности...";
+                    document.getElementById('ready-status').innerText = "Ожидание...";
                     document.getElementById('status').innerText = "Ожидание...";
                 }, 500);
             } else {
@@ -314,24 +304,16 @@ function checkRoundEnd() {
 
 function showResults() {
     sfxVictory.play().catch(()=>{}); 
-
     const resultsScreen = document.getElementById('results-screen');
     const winnerNameSpan = document.getElementById('winner-name');
     const winnerCircle = document.getElementById('winner-circle-element');
     const finalScoresSpan = document.getElementById('final-scores');
-    
     document.getElementById('ui-layer').style.display = 'none';
     finalScoresSpan.innerText = `${myScore} : ${oppScore}`;
     resultsScreen.style.display = 'flex';
-    
     let hostScore, guestScore, trueWinnerName;
-
-    if (!peerIdFromUrl) {
-        hostScore = myScore; guestScore = oppScore;
-    } else {
-        hostScore = oppScore; guestScore = myScore;
-    }
-
+    if (!peerIdFromUrl) { hostScore = myScore; guestScore = oppScore; }
+    else { hostScore = oppScore; guestScore = myScore; }
     if (hostScore > guestScore) {
         trueWinnerName = !peerIdFromUrl ? myNickname : oppNickname;
         winnerNameSpan.innerText = trueWinnerName;
@@ -344,6 +326,5 @@ function showResults() {
         winnerNameSpan.innerText = "НИЧЬЯ!";
         winnerCircle.classList.add('tie'); 
     }
-    
     setTimeout(() => resultsScreen.classList.add('active'), 50);
 }
