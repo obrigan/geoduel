@@ -1,4 +1,4 @@
-// Конфиг Firebase (Бельгия)
+// FIREBASE CONFIG (Твой бельгийский сервер)
 const firebaseConfig = {
   apiKey: "AIzaSyDYrThCjHvqKg7Gs932_1wdOor8eMNBhO4",
   authDomain: "geoduel-a0623.firebaseapp.com",
@@ -13,6 +13,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+// ДАННЫЕ ИГРЫ
 const gameData = [
     { map: 'images/map1.jpg', correct: 0, images: ['images/r1_1.jpg', 'images/r1_2.jpg', 'images/r1_3.jpg', 'images/r1_4.jpg'] },
     { map: 'images/map2.jpg', correct: 1, images: ['images/r2_1.jpg', 'images/r2_2.jpg', 'images/r2_3.jpg', 'images/r2_4.jpg'] },
@@ -24,7 +25,7 @@ const gameData = [
     { map: 'images/map8.jpg', correct: 3, images: ['images/r8_1.jpg', 'images/r8_2.jpg', 'images/r8_3.jpg', 'images/r8_4.jpg'] }
 ];
 
-// Звуки (Оригинальные)
+// ЗВУКИ
 const bgmMenu = new Audio('sounds/menu.mp3'); bgmMenu.loop = true; bgmMenu.volume = 0.07;
 const bgmHurry = new Audio('sounds/hurry.mp3'); bgmHurry.loop = true; bgmHurry.volume = 0.13;
 const sfxPowerup = new Audio('sounds/powerup.mp3'); sfxPowerup.volume = 0.2;
@@ -32,25 +33,30 @@ const sfxVictory = new Audio('sounds/victory.mp3'); sfxVictory.volume = 0.3;
 const sfxCorrect = new Audio('sounds/correct.mp3'); sfxCorrect.volume = 0.5;
 const sfxWrong = new Audio('sounds/wrong.mp3'); sfxWrong.volume = 0.5;
 
+// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
 let roomID = "";
 let myID = "u_" + Math.random().toString(36).substr(2, 5);
 let isHost = false;
 let myNickname = "Я", oppNickname = "Соперник";
 
 let currentRound = 0, myScore = 0, oppScore = 0;
-let hasAnswered = false;
 let timer, timeLeft = 90;
+let hasAnswered = false;
 let tempSelectedIdx = -1;
 let used5050 = false, usedTimeBoost = false, hintUsedThisRound = false;
-let lastRevealedRound = -1; // Чтобы звук играл 1 раз за раунд
+let lastRevealedRound = -1;
+let transitionTimeout = null;
 
+// АВТОПЛЕЙ МУЗЫКИ
 document.body.addEventListener('click', () => {
-    if (document.getElementById('setup-overlay').style.display !== 'none' && bgmMenu.paused) {
-        bgmMenu.play().catch(() => console.log("Автоплей заблокирован"));
+    if (document.getElementById('screen-setup').style.display !== 'none' && bgmMenu.paused) {
+        bgmMenu.play().catch(e => console.log("Audio block:", e));
     }
 }, { once: true });
 
-// === ЛОББИ ===
+// ==========================================
+// ЛОББИ И ПОДКЛЮЧЕНИЕ
+// ==========================================
 window.createRoom = function() {
     roomID = Math.floor(1000 + Math.random() * 9000).toString();
     isHost = true;
@@ -61,23 +67,23 @@ window.createRoom = function() {
         currentRound: 0,
         players: { [myID]: { name: myNickname, score: 0, ready: false, choice: -1 } }
     }).then(() => {
-        document.getElementById('menu-initial').style.display = 'none';
-        document.getElementById('lobby-panel').style.display = 'block';
+        document.getElementById('setup-controls').style.display = 'none';
+        document.getElementById('lobby-controls').style.display = 'flex';
         document.getElementById('display-room-code').innerText = roomID;
         listenToRoom();
     });
 };
 
 window.joinRoom = function() {
-    roomID = document.getElementById('room-input').value;
+    roomID = document.getElementById('room-input').value.trim();
     myNickname = document.getElementById('nick-input').value || "Игрок";
     if(!roomID) return alert("Введите код!");
 
     db.ref('duels/' + roomID + '/players/' + myID).set({
         name: myNickname, score: 0, ready: false, choice: -1
     }).then(() => {
-        document.getElementById('menu-initial').style.display = 'none';
-        document.getElementById('lobby-panel').style.display = 'block';
+        document.getElementById('setup-controls').style.display = 'none';
+        document.getElementById('lobby-controls').style.display = 'flex';
         document.getElementById('display-room-code').innerText = roomID;
         listenToRoom();
     }).catch(() => alert("Комната не найдена"));
@@ -92,24 +98,27 @@ function listenToRoom() {
         document.getElementById('lobby-status').innerText = `Игроков: ${pIDs.length}/2`;
         
         if (isHost && pIDs.length === 2 && data.state === 'lobby') {
-            document.getElementById('btn-start').style.display = 'block';
+            document.getElementById('btn-start').style.display = 'flex';
         }
 
         if (data.state !== 'lobby') {
-            syncGame(data);
+            syncGameState(data);
         }
     });
 }
 
-// === ИГРА ===
+// ==========================================
+// ОСНОВНАЯ ИГРА
+// ==========================================
 window.startGame = function() {
     db.ref('duels/' + roomID).update({ state: 'playing' });
 };
 
-function syncGame(data) {
-    if (document.getElementById('setup-overlay').style.display !== 'none') {
-        document.getElementById('setup-overlay').style.display = 'none';
-        document.getElementById('main-game-container').style.display = 'block';
+function syncGameState(data) {
+    // Переключение экранов при старте
+    if (document.getElementById('screen-setup').style.display !== 'none') {
+        document.getElementById('screen-setup').style.display = 'none';
+        document.getElementById('screen-game').style.display = 'flex';
         bgmMenu.pause();
     }
 
@@ -119,41 +128,40 @@ function syncGame(data) {
     }
 
     currentRound = data.currentRound;
-    const round = gameData[currentRound];
+    const roundData = gameData[currentRound];
     const me = data.players[myID];
     const oppID = Object.keys(data.players).find(id => id !== myID);
     const opp = oppID ? data.players[oppID] : null;
 
+    // Обновление шапки
     if (opp) oppNickname = opp.name;
-    myScore = me.score;
-    oppScore = opp ? opp.score : 0;
-
     document.getElementById('name-me').innerText = myNickname;
     document.getElementById('name-opp').innerText = oppNickname;
-    document.getElementById('score-me').innerText = myScore;
-    document.getElementById('score-opp').innerText = oppScore;
-    
+    document.getElementById('score-me').innerText = me.score;
+    document.getElementById('score-opp').innerText = opp ? opp.score : 0;
     document.getElementById('round-num').innerText = currentRound + 1;
-    document.getElementById('map-preview').src = round.map;
+    document.getElementById('map-preview').src = roundData.map;
 
-    // СОСТОЯНИЕ: Конец раунда (показываем ответы и переключаем)
+    // ОБРАБОТКА КОНЦА РАУНДА
     if (data.state === 'round_end') {
         clearInterval(timer);
         bgmHurry.pause(); bgmHurry.currentTime = 0;
-        document.getElementById('status').innerText = "Раунд завершен!";
-        revealAnswers(me.choice, opp ? opp.choice : -1, round.correct);
+        document.getElementById('game-status').innerText = "Раунд завершен!";
+        
+        revealAnswers(me.choice, opp ? opp.choice : -1, roundData.correct);
 
-        if (isHost && !window.isTransitioning) {
-            window.isTransitioning = true;
-            setTimeout(() => {
-                const nextRound = currentRound + 1;
-                if (nextRound < gameData.length) {
-                    const updates = { state: 'playing', currentRound: nextRound };
+        // Хост отвечает за переход на следующий раунд через 4 секунды
+        if (isHost && !transitionTimeout) {
+            transitionTimeout = setTimeout(() => {
+                transitionTimeout = null;
+                const next = currentRound + 1;
+                if (next < gameData.length) {
+                    const updates = { state: 'playing', currentRound: next };
                     Object.keys(data.players).forEach(id => {
                         updates[`players/${id}/ready`] = false;
                         updates[`players/${id}/choice`] = -1;
                     });
-                    db.ref('duels/' + roomID).update(updates).then(() => window.isTransitioning = false);
+                    db.ref('duels/' + roomID).update(updates);
                 } else {
                     db.ref('duels/' + roomID).update({ state: 'finished' });
                 }
@@ -162,35 +170,51 @@ function syncGame(data) {
         return;
     }
 
-    // СОСТОЯНИЕ: Ожидание готовности
+    // ОБРАБОТКА: ОЖИДАНИЕ ГОТОВНОСТИ
     if (!me.ready || (opp && !opp.ready)) {
-        document.getElementById('prep-screen').style.display = 'flex';
-        document.getElementById('round-screen').style.display = 'none';
-        document.getElementById('ready-btn').disabled = me.ready;
-        document.getElementById('ready-status').innerText = me.ready ? "Ожидание соперника..." : "Нажми готовность!";
+        document.getElementById('phase-prep').style.display = 'flex';
+        document.getElementById('phase-cards').style.display = 'none';
+        
+        const rBtn = document.getElementById('ready-btn');
+        const rStatus = document.getElementById('ready-status');
+        rBtn.disabled = me.ready;
+        rBtn.innerText = me.ready ? "ОЖИДАНИЕ..." : "Я ГОТОВ!";
+        rStatus.innerText = me.ready ? "Ожидаем готовности соперника..." : "Внимательно изучи карту!";
+        document.getElementById('game-status').innerText = "Подготовка...";
     } 
-    // СОСТОЯНИЕ: Выбор карточки
+    // ОБРАБОТКА: АКТИВНЫЙ РАУНД (ВЫБОР)
     else if (me.ready && opp.ready) {
-        document.getElementById('prep-screen').style.display = 'none';
-        document.getElementById('round-screen').style.display = 'block';
+        document.getElementById('phase-prep').style.display = 'none';
+        document.getElementById('phase-cards').style.display = 'flex';
         
         if (me.choice === -1) {
-            if (!timer) { 
+            // Раунд только начался для меня
+            if (!timer) {
+                // Сброс визуала карточек
                 for (let i = 0; i < 4; i++) {
-                    document.getElementById(`img${i}`).src = round.images[i];
-                    document.querySelectorAll('.option')[i].className = 'option';
+                    const card = document.querySelectorAll('.card-item')[i];
+                    card.className = 'card-item';
+                    document.getElementById(`img${i}`).src = roundData.images[i];
                 }
                 hintUsedThisRound = false;
                 hasAnswered = false;
                 tempSelectedIdx = -1;
                 updatePowerupUI();
-                document.getElementById('status').innerText = "Твой ход!";
-                document.getElementById('game-grid').style.pointerEvents = 'auto';
+                document.getElementById('game-status').innerText = "Твой ход!";
                 startTimer();
             }
         } else {
+            // Я ответил, жду соперника
             hasAnswered = true;
-            document.getElementById('status').innerText = "Ждем соперника...";
+            document.getElementById('game-status').innerText = "Ждем ответ соперника...";
+            // Подсвечиваем локально
+            document.querySelectorAll('.card-item').forEach((card, i) => {
+                card.classList.add('dimmed');
+                if (i === me.choice) {
+                    card.classList.remove('dimmed');
+                    card.classList.add('selected-state');
+                }
+            });
         }
     }
 }
@@ -199,95 +223,41 @@ window.setReady = function() {
     db.ref(`duels/${roomID}/players/${myID}`).update({ ready: true });
 };
 
-// === ТАЙМЕР И ПОДСКАЗКИ ===
-function startTimer() {
-    clearInterval(timer);
-    timeLeft = 90;
-    document.getElementById('timer-val').innerText = timeLeft;
-    timer = setInterval(() => {
-        timeLeft--;
-        document.getElementById('timer-val').innerText = timeLeft;
-        if (timeLeft === 10 && !hasAnswered) bgmHurry.play().catch(()=>{});
-        if (timeLeft <= 0) { 
-            clearInterval(timer); 
-            if (!hasAnswered) { closeZoom(); sendChoice(-1); } 
-        }
-    }, 1000);
-}
-
-window.use5050 = function() {
-    if (used5050 || hintUsedThisRound || hasAnswered) return;
-    used5050 = true; hintUsedThisRound = true;
-    sfxPowerup.play().catch(()=>{}); updatePowerupUI();
-    const correct = gameData[currentRound].correct;
-    let wrongIndices = [0, 1, 2, 3].filter(i => i !== correct);
-    wrongIndices.sort(() => Math.random() - 0.5);
-    const toRemove = wrongIndices.slice(0, 2);
-    toRemove.forEach(idx => {
-        document.querySelectorAll('.option')[idx].classList.add('eliminated');
-    });
-};
-
-window.useTimeBoost = function() {
-    if (usedTimeBoost || hintUsedThisRound || hasAnswered) return;
-    usedTimeBoost = true; hintUsedThisRound = true;
-    sfxPowerup.play().catch(()=>{}); updatePowerupUI();
-    timeLeft += 30;
-    document.getElementById('timer-val').innerText = timeLeft;
-    if (timeLeft > 10) { bgmHurry.pause(); bgmHurry.currentTime = 0; }
-    document.getElementById('timer-header').style.color = '#3498db';
-    setTimeout(() => document.getElementById('timer-header').style.color = '#ff4d4d', 1000);
-};
-
-function updatePowerupUI() {
-    const btn50 = document.getElementById('btn-5050');
-    const btnTime = document.getElementById('btn-time');
-    if (used5050 || hintUsedThisRound || hasAnswered) btn50.classList.add('disabled');
-    else btn50.classList.remove('disabled');
-    if (usedTimeBoost || hintUsedThisRound || hasAnswered) btnTime.classList.add('disabled');
-    else btnTime.classList.remove('disabled');
-}
-
-// === ЗУМ И ВЫБОР ===
-window.selectCard = function(index) {
+// ==========================================
+// ЗУМ И ВЫБОР
+// ==========================================
+window.openZoom = function(index) {
     if (hasAnswered) return;
-    if (document.querySelectorAll('.option')[index].classList.contains('eliminated')) return;
+    const card = document.querySelectorAll('.card-item')[index];
+    if (card.classList.contains('eliminated')) return;
 
     tempSelectedIdx = index;
-    const imgSrc = document.getElementById(`img${index}`).src;
-
-    document.getElementById('zoomed-img').src = imgSrc;
-    document.getElementById('zoom-overlay').style.display = 'flex';
-
-    document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected-state'));
-    document.querySelectorAll('.option')[index].classList.add('selected-state');
+    document.getElementById('zoomed-image').src = document.getElementById(`img${index}`).src;
+    document.getElementById('zoom-modal').style.display = 'flex';
 };
 
-window.closeZoom = function() {
-    document.getElementById('zoom-overlay').style.display = 'none';
+window.closeZoom = function(e) {
+    if (e && e.target.id === 'confirm-btn') return;
+    document.getElementById('zoom-modal').style.display = 'none';
 };
 
 window.confirmChoice = function() {
-    if (tempSelectedIdx === -1) return;
-    closeZoom();
-    sendChoice(tempSelectedIdx);
-};
-
-function sendChoice(index) {
-    if (hasAnswered) return;
+    if (tempSelectedIdx === -1 || hasAnswered) return;
+    document.getElementById('zoom-modal').style.display = 'none';
+    
     hasAnswered = true;
     clearInterval(timer);
     bgmHurry.pause(); bgmHurry.currentTime = 0;
-    document.getElementById('game-grid').style.pointerEvents = 'none';
     updatePowerupUI();
 
     const correct = gameData[currentRound].correct;
-    let scoreAdd = (index === correct) ? 1 : 0;
+    const scoreAdd = (tempSelectedIdx === correct) ? 1 : 0;
     
     db.ref(`duels/${roomID}/players/${myID}`).update({ 
-        choice: index,
+        choice: tempSelectedIdx,
         score: firebase.database.ServerValue.increment(scoreAdd)
     }).then(() => {
+        // Проверка: ответили ли оба?
         db.ref(`duels/${roomID}/players`).once('value', snap => {
             const p = snap.val();
             const keys = Object.keys(p);
@@ -296,23 +266,23 @@ function sendChoice(index) {
             }
         });
     });
-}
+};
 
 function revealAnswers(myChoice, oppChoice, correctChoice) {
-    const options = document.querySelectorAll('.option');
-    options.forEach(opt => {
-        opt.classList.add('dimmed');
-        opt.classList.remove('selected-state');
+    const cards = document.querySelectorAll('.card-item');
+    cards.forEach((card, i) => {
+        card.className = 'card-item dimmed'; // Сброс всего
+        if (i === correctChoice) {
+            card.classList.remove('dimmed');
+            card.classList.add('correct-choice');
+        }
+        if (i === myChoice && i !== correctChoice) {
+            card.classList.remove('dimmed');
+            card.classList.add('wrong-choice');
+        }
     });
-    
-    options[correctChoice].classList.remove('dimmed');
-    options[correctChoice].classList.add('correct-choice');
-    
-    if (myChoice !== correctChoice && myChoice !== -1) {
-        options[myChoice].classList.remove('dimmed');
-        options[myChoice].classList.add('wrong-choice');
-    }
 
+    // Одиночное воспроизведение звука
     if (lastRevealedRound !== currentRound) {
         lastRevealedRound = currentRound;
         if (myChoice === correctChoice) sfxCorrect.play().catch(()=>{});
@@ -320,24 +290,85 @@ function revealAnswers(myChoice, oppChoice, correctChoice) {
     }
 }
 
-// === ИТОГИ ===
+// ==========================================
+// ТАЙМЕР И БОНУСЫ
+// ==========================================
+function startTimer() {
+    clearInterval(timer);
+    timeLeft = 90;
+    document.getElementById('timer-val').innerText = timeLeft;
+    document.getElementById('timer-header').style.color = '#ff4d4d';
+
+    timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer-val').innerText = timeLeft;
+        
+        if (timeLeft === 10 && !hasAnswered) bgmHurry.play().catch(()=>{});
+        
+        if (timeLeft <= 0) { 
+            clearInterval(timer); 
+            if (!hasAnswered) { 
+                closeZoom(); 
+                tempSelectedIdx = -1; // Не успел = неверный ответ
+                confirmChoice(); // Отправляем -1 (или просто 0 баллов)
+            } 
+        }
+    }, 1000);
+}
+
+window.use5050 = function() {
+    if (used5050 || hintUsedThisRound || hasAnswered) return;
+    used5050 = true; hintUsedThisRound = true;
+    sfxPowerup.play().catch(()=>{}); updatePowerupUI();
+    
+    const correct = gameData[currentRound].correct;
+    let wrongIndices = [0, 1, 2, 3].filter(i => i !== correct);
+    wrongIndices.sort(() => Math.random() - 0.5);
+    const toRemove = wrongIndices.slice(0, 2);
+    
+    toRemove.forEach(idx => {
+        document.querySelectorAll('.card-item')[idx].classList.add('eliminated');
+    });
+};
+
+window.useTimeBoost = function() {
+    if (usedTimeBoost || hintUsedThisRound || hasAnswered) return;
+    usedTimeBoost = true; hintUsedThisRound = true;
+    sfxPowerup.play().catch(()=>{}); updatePowerupUI();
+    
+    timeLeft += 30;
+    document.getElementById('timer-val').innerText = timeLeft;
+    
+    if (timeLeft > 10) { bgmHurry.pause(); bgmHurry.currentTime = 0; }
+    document.getElementById('timer-header').style.color = '#3498db';
+    setTimeout(() => document.getElementById('timer-header').style.color = '#ff4d4d', 1000);
+};
+
+function updatePowerupUI() {
+    const btn50 = document.getElementById('btn-5050');
+    const btnTime = document.getElementById('btn-time');
+    btn50.disabled = (used5050 || hintUsedThisRound || hasAnswered);
+    btnTime.disabled = (usedTimeBoost || hintUsedThisRound || hasAnswered);
+}
+
+// ==========================================
+// ИТОГИ ИГРЫ
+// ==========================================
 function showResults(data) {
     sfxVictory.play().catch(()=>{}); 
-    const pIDs = Object.keys(data.players);
     const me = data.players[myID];
-    const oppID = pIDs.find(id => id !== myID);
+    const oppID = Object.keys(data.players).find(id => id !== myID);
     const opp = data.players[oppID];
 
-    document.getElementById('ui-layer').style.display = 'none';
-    document.getElementById('round-screen').style.display = 'none';
-    document.getElementById('prep-screen').style.display = 'none';
+    document.getElementById('phase-prep').style.display = 'none';
+    document.getElementById('phase-cards').style.display = 'none';
+    document.getElementById('game-header').style.display = 'none';
     
-    const resultsScreen = document.getElementById('results-screen');
+    const resultsScreen = document.getElementById('phase-results');
     const winnerNameSpan = document.getElementById('winner-name');
-    const winnerCircle = document.getElementById('winner-circle-element');
-    const finalScoresSpan = document.getElementById('final-scores');
+    const winnerCircle = document.getElementById('winner-circle');
     
-    finalScoresSpan.innerText = `${me.score} : ${opp.score}`;
+    document.getElementById('final-scores').innerText = `${me.score} : ${opp.score}`;
     resultsScreen.style.display = 'flex';
     
     if (me.score > opp.score) {
@@ -349,5 +380,6 @@ function showResults(data) {
         winnerCircle.classList.add('tie'); 
     }
     
+    // Хост удаляет комнату, чтобы база не засорялась
     if (isHost) db.ref('duels/' + roomID).remove();
 }
