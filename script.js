@@ -9,119 +9,115 @@ const gameData = [
     { map: 'images/map8.jpg', correct: 3, images: ['images/r8_1.jpg', 'images/r8_2.jpg', 'images/r8_3.jpg', 'images/r8_4.jpg'] }
 ];
 
-const bgmMenu = new Audio('sounds/menu.mp3'); bgmMenu.loop = true; bgmMenu.volume = 0.07;
-const bgmHurry = new Audio('sounds/hurry.mp3'); bgmHurry.loop = true; bgmHurry.volume = 0.13;
-const sfxPowerup = new Audio('sounds/powerup.mp3'); sfxPowerup.volume = 0.2;
-const sfxCorrect = new Audio('sounds/correct.mp3'); sfxCorrect.volume = 0.2;
-const sfxWrong = new Audio('sounds/wrong.mp3'); sfxWrong.volume = 0.2;
-const sfxVictory = new Audio('sounds/victory.mp3'); sfxVictory.volume = 0.2;
-
 const urlParams = new URLSearchParams(window.location.search);
 let peerIdFromUrl = urlParams.get('peer');
-const peer = new Peer();
-let conn;
 
-let myNickname = "Я";
-let oppNickname = "Соперник";
-let isGameStarted = false;
-
-let used5050 = false;
-let usedTimeBoost = false;
-let hintUsedThisRound = false;
-
-let currentRound = 0;
-let myScore = 0;
-let oppScore = 0;
-let iAmReady = false;
-let oppIsReady = false;
-let hasAnswered = false;
-let oppHasAnswered = false;
-let timer;
-let timeLeft = 90;
-
-// ПЕРЕМЕННАЯ ДЛЯ ВРЕМЕННОГО ВЫБОРА
-let tempSelectedIdx = -1;
-
-const setupScreen = document.createElement('div');
-setupScreen.id = "setup-overlay";
-
-document.body.addEventListener('click', () => {
-    if (!isGameStarted && bgmMenu.paused) {
-        bgmMenu.play().catch(() => console.log("Автоплей заблокирован"));
+// "БРОНЕБОЙНАЯ" КОНФИГУРАЦИЯ СЕТИ
+const peerConfig = {
+    host: '0.peerjs.com',
+    port: 443,
+    secure: true,
+    debug: 1,
+    config: {
+        'iceServers': [
+            { 'urls': 'stun:stun.l.google.com:19302' },
+            { 'urls': 'stun:stun1.l.google.com:19302' },
+            { 'urls': 'stun:stun2.l.google.com:19302' },
+            { 'urls': 'stun:stun3.l.google.com:19302' },
+            { 'urls': 'stun:stun4.l.google.com:19302' }
+        ]
     }
-}, { once: true });
+};
+
+let peer = new Peer(peerConfig);
+let conn;
+let myNickname = "Я", oppNickname = "Соперник";
+let currentRound = 0, myScore = 0, oppScore = 0;
+let iAmReady = false, oppIsReady = false, hasAnswered = false, oppHasAnswered = false;
+let timer, timeLeft = 90;
+
+// ТАЙМЕР ДЛЯ ПРОВЕРКИ ЗАВИСШЕГО ПОДКЛЮЧЕНИЯ
+let connectionTimeout = setTimeout(() => {
+    if (!peer.id) {
+        document.getElementById('network-status').innerText = "ОШИБКА: Провайдер блокирует сеть.";
+        document.getElementById('debug-info').innerText = "Попробуйте зайти с телефона или сменить браузер.";
+    }
+}, 12000);
+
+window.onload = () => {
+    if (!peerIdFromUrl) {
+        document.getElementById('host-controls-ui').style.display = 'block';
+    } else {
+        document.getElementById('guest-controls-ui').style.display = 'block';
+    }
+};
 
 peer.on('open', (id) => {
-    document.body.appendChild(setupScreen);
-    const gameUrl = window.location.origin + window.location.pathname + '?peer=' + id;
-
+    clearTimeout(connectionTimeout);
+    document.getElementById('network-status').innerText = "СЕТЬ: ГОТОВА";
+    document.getElementById('network-status').style.color = "#2ecc71";
+    document.getElementById('btn-start-game').disabled = false;
+    
     if (!peerIdFromUrl) {
-        setupScreen.innerHTML = `
-            <h1>GeoDuel 1v1</h1>
-            <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12" autocomplete="off">
-            <div class="url-box">${gameUrl}</div>
-            <button id="btn-copy" class="menu-btn">СКОПИРОВАТЬ ССЫЛКУ</button>
-            <button id="btn-start" class="menu-btn secondary-btn">ПЕРЕЙТИ К ИГРЕ</button>
-        `;
+        const gameUrl = window.location.origin + window.location.pathname + '?peer=' + id;
+        document.getElementById('game-url').innerText = gameUrl;
         document.getElementById('btn-copy').onclick = () => {
             navigator.clipboard.writeText(gameUrl);
             document.getElementById('btn-copy').innerText = "ССЫЛКА В БУФЕРЕ!";
         };
-        document.getElementById('btn-start').onclick = () => {
-            bgmMenu.pause(); 
+        document.getElementById('btn-start-game').onclick = () => {
             myNickname = document.getElementById('nick-input').value || "Хост";
             document.getElementById('name-me').innerText = myNickname;
-            isGameStarted = true;
-            setupScreen.style.display = 'none';
+            document.getElementById('setup-overlay').style.display = 'none';
             document.getElementById('main-game-container').style.display = 'flex';
-            if (conn && conn.open) conn.send({ type: 'init-name', name: myNickname });
-        };
-    } else {
-        setupScreen.innerHTML = `
-            <h1>GeoDuel 1v1</h1>
-            <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12" autocomplete="off">
-            <button id="btn-join" class="menu-btn">ПРИСОЕДИНИТЬСЯ</button>
-        `;
-        document.getElementById('btn-join').onclick = () => {
-            bgmMenu.pause(); 
-            myNickname = document.getElementById('nick-input').value || "Гость";
-            document.getElementById('name-me').innerText = myNickname;
-            isGameStarted = true;
-            conn = peer.connect(peerIdFromUrl);
-            setupConnectionListeners(conn);
         };
     }
 });
 
-peer.on('connection', (incomingConn) => {
-    conn = incomingConn;
-    setupConnectionListeners(conn);
+peer.on('connection', (incoming) => {
+    conn = incoming;
+    setupConnection(conn);
 });
 
-function setupConnectionListeners(connection) {
-    connection.on('open', () => {
-        document.getElementById('main-game-container').style.display = 'flex';
-        setupScreen.style.display = 'none';
-        if (isGameStarted) connection.send({ type: 'init-name', name: myNickname });
+peer.on('error', (err) => {
+    console.error("PeerJS Error Type:", err.type);
+    document.getElementById('network-status').innerText = "СЕТЬ: ОШИБКА (" + err.type + ")";
+    document.getElementById('network-status').style.color = "#e74c3c";
+});
+
+window.joinDuel = function() {
+    myNickname = document.getElementById('nick-input').value || "Гость";
+    document.getElementById('name-me').innerText = myNickname;
+    document.getElementById('setup-overlay').style.display = 'none';
+    document.getElementById('main-game-container').style.display = 'flex';
+    
+    conn = peer.connect(peerIdFromUrl, { reliable: true });
+    setupConnection(conn);
+};
+
+function setupConnection(c) {
+    c.on('open', () => {
+        c.send({ type: 'init-name', name: myNickname });
         
-        connection.on('data', (data) => {
+        c.on('data', (data) => {
             if (data.type === 'init-name') {
                 oppNickname = data.name;
                 document.getElementById('name-opp').innerText = oppNickname;
                 document.getElementById('status').innerText = "Соперник подключился!";
-                if (!peerIdFromUrl && isGameStarted) { connection.send({ type: 'init-name', name: myNickname }); }
+                if (!peerIdFromUrl) c.send({ type: 'init-name', name: myNickname });
             }
             if (data.type === 'ready') { oppIsReady = true; checkStartRound(); }
-            if (data.type === 'answer') { 
-                oppHasAnswered = true; 
+            if (data.type === 'answer') {
+                oppHasAnswered = true;
                 if (data.choice === gameData[currentRound].correct) oppScore++;
                 document.getElementById('score-opp').innerText = oppScore;
-                checkRoundEnd(); 
+                checkRoundEnd();
             }
         });
     });
 }
 
+// === ЛОГИКА ИГРЫ ===
 window.setReady = function() {
     if (iAmReady) return;
     iAmReady = true;
@@ -133,92 +129,24 @@ window.setReady = function() {
 
 function checkStartRound() {
     if (iAmReady && oppIsReady) {
-        const prepScreen = document.getElementById('prep-screen');
-        const roundScreen = document.getElementById('round-screen'); 
-        prepScreen.classList.remove('active');
-        setTimeout(() => {
-            prepScreen.style.display = 'none';
-            roundScreen.style.display = 'flex';
-            loadRound();
-            setTimeout(() => roundScreen.classList.add('active'), 50);
-        }, 500);
+        document.getElementById('prep-screen').style.display = 'none';
+        document.getElementById('round-screen').style.display = 'flex';
+        loadRound();
     }
-}
-
-// ЛОГИКА ЗУМА И ВЫБОРА
-window.selectCard = function(index) {
-    if (hasAnswered) return;
-    // Если 50/50 убрал эту карту, не даем ее зумить
-    if (document.querySelectorAll('.option')[index].classList.contains('eliminated')) return;
-
-    tempSelectedIdx = index;
-    const imgSrc = document.getElementById(`img${index}`).src;
-    
-    // Показываем оверлей
-    document.getElementById('zoomed-img').src = imgSrc;
-    document.getElementById('zoom-overlay').style.display = 'flex';
-
-    // Подсвечиваем в основной сетке (косметически)
-    document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected-state'));
-    document.querySelectorAll('.option')[index].classList.add('selected-state');
-};
-
-window.closeZoom = function() {
-    document.getElementById('zoom-overlay').style.display = 'none';
-};
-
-window.confirmChoice = function() {
-    if (tempSelectedIdx === -1) return;
-    closeZoom();
-    sendChoice(tempSelectedIdx);
-};
-
-window.use5050 = function() {
-    if (used5050 || hintUsedThisRound || hasAnswered) return;
-    used5050 = true; hintUsedThisRound = true;
-    sfxPowerup.play().catch(()=>{}); updatePowerupUI();
-    const correct = gameData[currentRound].correct;
-    let wrongIndices = [0, 1, 2, 3].filter(i => i !== correct);
-    wrongIndices.sort(() => Math.random() - 0.5);
-    const toRemove = wrongIndices.slice(0, 2);
-    toRemove.forEach(idx => {
-        const opt = document.querySelectorAll('.option')[idx];
-        opt.classList.add('eliminated');
-    });
-};
-
-window.useTimeBoost = function() {
-    if (usedTimeBoost || hintUsedThisRound || hasAnswered) return;
-    usedTimeBoost = true; hintUsedThisRound = true;
-    sfxPowerup.play().catch(()=>{}); updatePowerupUI();
-    timeLeft += 30;
-    document.getElementById('timer-val').innerText = timeLeft;
-    if (timeLeft > 10) { bgmHurry.pause(); bgmHurry.currentTime = 0; }
-    document.getElementById('timer-header').style.color = '#3498db';
-    setTimeout(() => document.getElementById('timer-header').style.color = '#e74c3c', 1000);
-};
-
-function updatePowerupUI() {
-    const btn50 = document.getElementById('btn-5050');
-    const btnTime = document.getElementById('btn-time');
-    if (used5050 || hintUsedThisRound || hasAnswered) btn50.classList.add('disabled');
-    else btn50.classList.remove('disabled');
-    if (usedTimeBoost || hintUsedThisRound || hasAnswered) btnTime.classList.add('disabled');
-    else btnTime.classList.remove('disabled');
 }
 
 function loadRound() {
     hasAnswered = false; oppHasAnswered = false; timeLeft = 90;
-    hintUsedThisRound = false; tempSelectedIdx = -1;
-    bgmHurry.pause(); bgmHurry.currentTime = 0;
     document.getElementById('status').innerText = "Твой ход!";
     document.getElementById('game-grid').style.pointerEvents = 'auto';
-    document.querySelectorAll('.option').forEach(opt => opt.className = 'option');
-    updatePowerupUI();
+    
     const round = gameData[currentRound];
     document.getElementById('round-num').innerText = currentRound + 1;
     document.getElementById('map-preview').src = round.map;
+    
     for (let i = 0; i < 4; i++) {
+        const opt = document.querySelectorAll('.option')[i];
+        opt.className = 'option';
         document.getElementById(`img${i}`).src = round.images[i];
     }
     startTimer();
@@ -229,102 +157,58 @@ function startTimer() {
     timer = setInterval(() => {
         timeLeft--;
         document.getElementById('timer-val').innerText = timeLeft;
-        if (timeLeft === 10 && !hasAnswered) bgmHurry.play().catch(()=>{});
-        if (timeLeft <= 0) { clearInterval(timer); if (!hasAnswered) { closeZoom(); sendChoice(-1); } }
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            if (!hasAnswered) sendChoice(-1);
+        }
     }, 1000);
 }
 
-function sendChoice(index) {
+window.sendChoice = function(index) {
     if (hasAnswered) return;
     hasAnswered = true;
     clearInterval(timer);
-    bgmHurry.pause(); bgmHurry.currentTime = 0;
     document.getElementById('game-grid').style.pointerEvents = 'none';
-    updatePowerupUI();
 
-    const correctIndex = gameData[currentRound].correct;
-    if (index === correctIndex) {
+    const correct = gameData[currentRound].correct;
+    if (index === correct) {
         myScore++;
         document.getElementById('score-me').innerText = myScore;
-        sfxCorrect.play().catch(()=>{}); 
-    } else {
-        if (index !== -1) sfxWrong.play().catch(()=>{}); 
     }
     
-    revealAnswers(index, correctIndex);
+    revealAnswers(index, correct);
     if (conn && conn.open) conn.send({ type: 'answer', choice: index });
     document.getElementById('status').innerText = "Ждем ответ...";
     checkRoundEnd();
-}
+};
 
 function revealAnswers(myChoice, correctChoice) {
-    const options = document.querySelectorAll('.option');
-    options.forEach(opt => {
-        opt.classList.add('dimmed');
-        opt.classList.remove('selected-state'); // Убираем синюю подсветку
-    });
-    options[correctChoice].classList.remove('dimmed');
-    options[correctChoice].classList.add('correct-choice');
+    const opts = document.querySelectorAll('.option');
+    opts.forEach(o => o.classList.add('dimmed'));
+    opts[correctChoice].classList.add('correct-choice');
+    opts[correctChoice].classList.remove('dimmed');
     if (myChoice !== correctChoice && myChoice !== -1) {
-        options[myChoice].classList.remove('dimmed');
-        options[myChoice].classList.add('wrong-choice');
+        opts[myChoice].classList.add('wrong-choice');
+        opts[myChoice].classList.remove('dimmed');
     }
 }
 
 function checkRoundEnd() {
     if (hasAnswered && oppHasAnswered) {
-        document.getElementById('status').innerText = "Раунд завершен!";
         setTimeout(() => {
             currentRound++;
-            const roundScreen = document.getElementById('round-screen');
             if (currentRound < gameData.length) {
                 iAmReady = false; oppIsReady = false;
                 document.getElementById('ready-btn').disabled = false;
-                const prepScreen = document.getElementById('prep-screen');
-                roundScreen.classList.remove('active');
-                setTimeout(() => {
-                    roundScreen.style.display = 'none';
-                    prepScreen.style.display = 'flex';
-                    document.getElementById('round-num').innerText = currentRound + 1;
-                    document.getElementById('map-preview').src = gameData[currentRound].map;
-                    setTimeout(() => prepScreen.classList.add('active'), 50);
-                    document.getElementById('ready-status').innerText = "Ожидание...";
-                    document.getElementById('status').innerText = "Ожидание...";
-                }, 500);
+                document.getElementById('ready-status').innerText = "Ждем готовности...";
+                document.getElementById('prep-screen').style.display = 'flex';
+                document.getElementById('round-screen').style.display = 'none';
+                document.getElementById('map-preview').src = gameData[currentRound].map;
+                document.getElementById('round-num').innerText = currentRound + 1;
             } else {
-                roundScreen.classList.remove('active');
-                setTimeout(() => {
-                    roundScreen.style.display = 'none';
-                    showResults();
-                }, 500);
+                alert(`ИГРА ОКОНЧЕНА! Счет: ${myScore} - ${oppScore}`);
+                location.reload();
             }
         }, 3000);
     }
-}
-
-function showResults() {
-    sfxVictory.play().catch(()=>{}); 
-    const resultsScreen = document.getElementById('results-screen');
-    const winnerNameSpan = document.getElementById('winner-name');
-    const winnerCircle = document.getElementById('winner-circle-element');
-    const finalScoresSpan = document.getElementById('final-scores');
-    document.getElementById('ui-layer').style.display = 'none';
-    finalScoresSpan.innerText = `${myScore} : ${oppScore}`;
-    resultsScreen.style.display = 'flex';
-    let hostScore, guestScore, trueWinnerName;
-    if (!peerIdFromUrl) { hostScore = myScore; guestScore = oppScore; }
-    else { hostScore = oppScore; guestScore = myScore; }
-    if (hostScore > guestScore) {
-        trueWinnerName = !peerIdFromUrl ? myNickname : oppNickname;
-        winnerNameSpan.innerText = trueWinnerName;
-        winnerCircle.classList.add('winner-active'); 
-    } else if (guestScore > hostScore) {
-        trueWinnerName = !peerIdFromUrl ? oppNickname : myNickname;
-        winnerNameSpan.innerText = trueWinnerName;
-        winnerCircle.classList.add('winner-active'); 
-    } else {
-        winnerNameSpan.innerText = "НИЧЬЯ!";
-        winnerCircle.classList.add('tie'); 
-    }
-    setTimeout(() => resultsScreen.classList.add('active'), 50);
 }
