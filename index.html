@@ -52,8 +52,9 @@
 
         <main id="phase-prep" class="phase-container">
             <h2 class="round-title">Раунд <span id="round-num">1</span> из 8</h2>
-            <div class="map-wrapper">
+            <div class="map-wrapper" onclick="openZoom(document.getElementById('map-preview').src, true)">
                 <img id="map-preview" src="" alt="Карта задания">
+                <div class="zoom-hint">Нажми, чтобы увеличить</div>
             </div>
             <button id="ready-btn" class="btn btn-primary large-btn" onclick="setReady()">Я ГОТОВ!</button>
         </main>
@@ -94,7 +95,7 @@
         <div class="modal-content" onclick="event.stopPropagation()">
             <img id="zoomed-image" src="" alt="Увеличенное фото">
             <button id="confirm-btn" class="btn btn-danger huge-btn" onclick="confirmChoice()">ОТВЕТИТЬ!</button>
-            <div class="close-hint" onclick="closeZoom(event)">нажать сюда, чтобы вернуться к выбору</div>
+            <div class="close-hint" onclick="closeZoom(event)">кликни сюда, чтобы закрыть</div>
         </div>
     </div>
 
