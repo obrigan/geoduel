@@ -53,7 +53,6 @@ body {
 .option img { width: 100%; display: block; height: auto; }
 .option:hover { border-color: #555; transform: translateY(-3px); }
 
-/* Состояния ответов */
 .dimmed { opacity: 0.3; filter: grayscale(1); pointer-events: none; }
 .correct-choice { border-color: #2ecc71 !important; box-shadow: 0 0 20px #2ecc71; }
 .wrong-choice { border-color: #e74c3c !important; box-shadow: 0 0 20px #e74c3c; }
