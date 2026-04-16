@@ -3,94 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoDuel 1v1</title>
+    <title>GeoDuel 1v1: Ultimate</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
-    <div id="setup-overlay">
-        <h1 style="font-size: 56px; color: #3498db; margin-bottom: 30px;">GeoDuel 1v1</h1>
-        <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12">
+    <div id="screen-setup" class="screen-container active">
+        <h1 class="main-title">GeoDuel <span>1v1</span></h1>
         
-        <div id="menu-initial">
-            <button class="menu-btn" onclick="createRoom()">СОЗДАТЬ ЛОББИ</button>
-            <div style="margin: 15px 0; color: #555; text-align: center; font-weight: bold;">ИЛИ</div>
-            <input type="text" id="room-input" placeholder="Код комнаты">
-            <button class="menu-btn secondary-btn" onclick="joinRoom()">ЗАЙТИ ПО КОДУ</button>
+        <div id="setup-controls" class="centered-flex">
+            <input type="text" id="nick-input" class="custom-input" placeholder="Твой никнейм" maxlength="12" autocomplete="off">
+            <button class="btn btn-primary" onclick="createRoom()">СОЗДАТЬ ЛОББИ</button>
+            
+            <div class="divider">или</div>
+            
+            <div class="join-row">
+                <input type="text" id="room-input" class="custom-input small-input" placeholder="Код комнаты" autocomplete="off">
+                <button class="btn btn-secondary" onclick="joinRoom()">ВОЙТИ</button>
+            </div>
         </div>
 
-        <div id="lobby-panel" style="display: none; text-align: center;">
-            <div class="url-box" style="font-size: 20px;">КОД: <b id="display-room-code" style="color: #f1c40f;">...</b></div>
-            <div id="lobby-status" style="margin: 20px 0; font-weight: bold;">Ждем соперника...</div>
-            <button id="btn-start" class="menu-btn" style="display: none; margin: 0 auto;" onclick="startGame()">НАЧАТЬ ДУЭЛЬ</button>
-        </div>
-    </div>
-
-    <div id="main-game-container" style="display: none;">
-        <div id="ui-layer">
-            <h1 id="timer-header">Время: <span id="timer-val">90</span></h1>
-            <div id="game-info">
-                <span id="name-me">Я</span> 
-                <span id="score-board"><span id="score-me">0</span> : <span id="score-opp">0</span></span>
-                <span id="name-opp">Соперник</span>
-            </div>
-            <div id="status">Ожидание...</div>
-        </div>
-
-        <div class="section-wrapper">
-            <div id="prep-screen" class="prep-container active">
-                <h2 id="round-title">Раунд <span id="round-num">1</span></h2>
-                <div class="map-container">
-                    <img id="map-preview" src="images/map1.jpg" alt="Карта">
-                </div>
-                <button id="ready-btn" onclick="setReady()">ГОТОВ!</button>
-                <p id="ready-status">Ждем готовности игроков...</p>
-            </div>
-
-            <div id="round-screen" style="display: none;">
-                <div id="powerups-panel">
-                    <div class="powerup-btn" id="btn-5050" onclick="use5050()">
-                        <span class="powerup-icon">🌗</span>
-                        <span class="powerup-text">50/50</span>
-                    </div>
-                    <div class="powerup-btn" id="btn-time" onclick="useTimeBoost()">
-                        <span class="powerup-icon">⏱️</span>
-                        <span class="powerup-text">+30 СЕК</span>
-                    </div>
-                </div>
-
-                <div id="game-grid">
-                    <div class="option" onclick="selectCard(0)"><img id="img0" src=""></div>
-                    <div class="option" onclick="selectCard(1)"><img id="img1" src=""></div>
-                    <div class="option" onclick="selectCard(2)"><img id="img2" src=""></div>
-                    <div class="option" onclick="selectCard(3)"><img id="img3" src=""></div>
-                </div>
-            </div>
-
-            <div id="results-screen" class="prep-container" style="display: none;">
-                <h1 id="results-title" style="color:#e0e0e0; font-size: 50px; margin-bottom: 30px;">ИТОГИ</h1>
-                
-                <div class="winner-display">
-                    <span class="trophy-icon">🏆</span>
-                    <div id="winner-circle-element" class="winner-circle">
-                        <span id="winner-name">Никнейм</span>
-                    </div>
-                    <span class="trophy-icon">🏆</span>
-                </div>
-                
-                <div id="final-scores" style="font-size: 32px; font-family: monospace; color: white; margin: 10px 0;"></div>
-                <button class="menu-btn" style="margin-top: 30px;" onclick="location.reload()">ИГРАТЬ ЕЩЕ</button>
-            </div>
+        <div id="lobby-controls" class="centered-flex" style="display: none;">
+            <div class="room-code-display">КОД КОМНАТЫ: <span id="display-room-code">...</span></div>
+            <div id="lobby-status" class="status-text">Игроков: 1/2</div>
+            <button id="btn-start" class="btn btn-success" style="display: none;" onclick="startGame()">НАЧАТЬ ДУЭЛЬ</button>
         </div>
     </div>
 
-    <div id="zoom-overlay" onclick="closeZoom()">
-        <div class="zoom-content" onclick="event.stopPropagation()">
-            <img id="zoomed-img" src="">
-            <button id="confirm-choice-btn" onclick="confirmChoice()">ОТВЕТИТЬ!</button>
-            <p style="color: #aaa; margin-top: 10px; cursor: pointer;" onclick="closeZoom()">назад к выбору</p>
+    <div id="screen-game" class="screen-container" style="display: none;">
+        
+        <header id="game-header">
+            <div class="timer-box">Время: <span id="timer-val" class="timer-number">90</span></div>
+            <div class="scoreboard">
+                <div class="player-info left">
+                    <span id="name-me" class="player-name">Я</span>
+                    <span id="score-me" class="score-badge">0</span>
+                </div>
+                <div class="score-colon">:</div>
+                <div class="player-info right">
+                    <span id="score-opp" class="score-badge">0</span>
+                    <span id="name-opp" class="player-name">Соперник</span>
+                </div>
+            </div>
+            <div id="game-status" class="status-text">Ожидание...</div>
+        </header>
+
+        <main id="phase-prep" class="phase-container">
+            <h2 class="round-title">Раунд <span id="round-num">1</span> из 8</h2>
+            <div class="map-wrapper">
+                <img id="map-preview" src="" alt="Карта задания">
+            </div>
+            <button id="ready-btn" class="btn btn-primary large-btn" onclick="setReady()">Я ГОТОВ!</button>
+        </main>
+
+        <main id="phase-cards" class="phase-container" style="display: none;">
+            <div class="powerups-container">
+                <button class="powerup-btn" id="btn-5050" onclick="use5050()">
+                    <span class="p-icon">🌗</span> 50/50
+                </button>
+                <button class="powerup-btn" id="btn-time" onclick="useTimeBoost()">
+                    <span class="p-icon">⏱️</span> +30 СЕК
+                </button>
+            </div>
+
+            <div class="cards-grid">
+                <div class="card-item" onclick="openZoom(0)"><img id="img0" src=""></div>
+                <div class="card-item" onclick="openZoom(1)"><img id="img1" src=""></div>
+                <div class="card-item" onclick="openZoom(2)"><img id="img2" src=""></div>
+                <div class="card-item" onclick="openZoom(3)"><img id="img3" src=""></div>
+            </div>
+        </main>
+
+        <main id="phase-results" class="phase-container" style="display: none;">
+            <h1 class="victory-title">ИТОГИ ДУЭЛИ</h1>
+            <div class="winner-box">
+                <span class="trophy">🏆</span>
+                <div id="winner-circle">
+                    <span id="winner-name">Никнейм</span>
+                </div>
+                <span class="trophy">🏆</span>
+            </div>
+            <div id="final-scores" class="final-score-text">0 : 0</div>
+            <button class="btn btn-primary" style="margin-top: 40px;" onclick="location.reload()">СЫГРАТЬ ЕЩЕ РАЗ</button>
+        </main>
+    </div>
+
+    <div id="zoom-modal" class="modal-overlay" style="display: none;" onclick="closeZoom(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <img id="zoomed-image" src="" alt="Увеличенное фото">
+            <button id="confirm-btn" class="btn btn-danger huge-btn" onclick="confirmChoice()">ОТВЕТИТЬ!</button>
+            <div class="close-hint" onclick="closeZoom(event)">нажать сюда, чтобы вернуться к выбору</div>
         </div>
     </div>
 
