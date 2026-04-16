@@ -39,7 +39,7 @@ let myID = "u_" + Math.random().toString(36).substr(2, 5);
 let isHost = false;
 let myNickname = "Я", oppNickname = "Соперник";
 
-let currentRound = 0, myScore = 0, oppScore = 0;
+let currentRound = 0;
 let timer, timeLeft = 90;
 let hasAnswered = false;
 let tempSelectedIdx = -1;
@@ -115,7 +115,6 @@ window.startGame = function() {
 };
 
 function syncGameState(data) {
-    // Переключение экранов при старте
     if (document.getElementById('screen-setup').style.display !== 'none') {
         document.getElementById('screen-setup').style.display = 'none';
         document.getElementById('screen-game').style.display = 'flex';
@@ -133,7 +132,6 @@ function syncGameState(data) {
     const oppID = Object.keys(data.players).find(id => id !== myID);
     const opp = oppID ? data.players[oppID] : null;
 
-    // Обновление шапки
     if (opp) oppNickname = opp.name;
     document.getElementById('name-me').innerText = myNickname;
     document.getElementById('name-opp').innerText = oppNickname;
@@ -142,7 +140,7 @@ function syncGameState(data) {
     document.getElementById('round-num').innerText = currentRound + 1;
     document.getElementById('map-preview').src = roundData.map;
 
-    // ОБРАБОТКА КОНЦА РАУНДА
+    // СОСТОЯНИЕ: Конец раунда
     if (data.state === 'round_end') {
         clearInterval(timer);
         bgmHurry.pause(); bgmHurry.currentTime = 0;
@@ -150,7 +148,6 @@ function syncGameState(data) {
         
         revealAnswers(me.choice, opp ? opp.choice : -1, roundData.correct);
 
-        // Хост отвечает за переход на следующий раунд через 4 секунды
         if (isHost && !transitionTimeout) {
             transitionTimeout = setTimeout(() => {
                 transitionTimeout = null;
@@ -170,27 +167,23 @@ function syncGameState(data) {
         return;
     }
 
-    // ОБРАБОТКА: ОЖИДАНИЕ ГОТОВНОСТИ
+    // СОСТОЯНИЕ: Ожидание готовности
     if (!me.ready || (opp && !opp.ready)) {
         document.getElementById('phase-prep').style.display = 'flex';
         document.getElementById('phase-cards').style.display = 'none';
         
         const rBtn = document.getElementById('ready-btn');
-        const rStatus = document.getElementById('ready-status');
         rBtn.disabled = me.ready;
         rBtn.innerText = me.ready ? "ОЖИДАНИЕ..." : "Я ГОТОВ!";
-        rStatus.innerText = me.ready ? "Ожидаем готовности соперника..." : "Внимательно изучи карту!";
         document.getElementById('game-status').innerText = "Подготовка...";
     } 
-    // ОБРАБОТКА: АКТИВНЫЙ РАУНД (ВЫБОР)
+    // СОСТОЯНИЕ: Выбор карточки
     else if (me.ready && opp.ready) {
         document.getElementById('phase-prep').style.display = 'none';
         document.getElementById('phase-cards').style.display = 'flex';
         
         if (me.choice === -1) {
-            // Раунд только начался для меня
             if (!timer) {
-                // Сброс визуала карточек
                 for (let i = 0; i < 4; i++) {
                     const card = document.querySelectorAll('.card-item')[i];
                     card.className = 'card-item';
@@ -204,17 +197,10 @@ function syncGameState(data) {
                 startTimer();
             }
         } else {
-            // Я ответил, жду соперника
+            // Если мы перезагрузили страницу, восстанавливаем локальный вид
             hasAnswered = true;
             document.getElementById('game-status').innerText = "Ждем ответ соперника...";
-            // Подсвечиваем локально
-            document.querySelectorAll('.card-item').forEach((card, i) => {
-                card.classList.add('dimmed');
-                if (i === me.choice) {
-                    card.classList.remove('dimmed');
-                    card.classList.add('selected-state');
-                }
-            });
+            revealAnswers(me.choice, -1, roundData.correct);
         }
     }
 }
@@ -226,13 +212,24 @@ window.setReady = function() {
 // ==========================================
 // ЗУМ И ВЫБОР
 // ==========================================
-window.openZoom = function(index) {
-    if (hasAnswered) return;
-    const card = document.querySelectorAll('.card-item')[index];
-    if (card.classList.contains('eliminated')) return;
 
-    tempSelectedIdx = index;
-    document.getElementById('zoomed-image').src = document.getElementById(`img${index}`).src;
+// Обновленная функция: может зумить и карточки, и саму карту
+window.openZoom = function(indexOrSrc, isMap = false) {
+    let src;
+    if (isMap) {
+        src = indexOrSrc;
+        document.getElementById('confirm-btn').style.display = 'none'; // Прячем кнопку ответа
+    } else {
+        if (hasAnswered) return;
+        const card = document.querySelectorAll('.card-item')[indexOrSrc];
+        if (card.classList.contains('eliminated')) return;
+
+        tempSelectedIdx = indexOrSrc;
+        src = document.getElementById(`img${indexOrSrc}`).src;
+        document.getElementById('confirm-btn').style.display = 'flex'; // Показываем кнопку
+    }
+    
+    document.getElementById('zoomed-image').src = src;
     document.getElementById('zoom-modal').style.display = 'flex';
 };
 
@@ -241,8 +238,8 @@ window.closeZoom = function(e) {
     document.getElementById('zoom-modal').style.display = 'none';
 };
 
-window.confirmChoice = function() {
-    if (tempSelectedIdx === -1 || hasAnswered) return;
+window.confirmChoice = function(forceTimeout = false) {
+    if ((tempSelectedIdx === -1 && !forceTimeout) || hasAnswered) return;
     document.getElementById('zoom-modal').style.display = 'none';
     
     hasAnswered = true;
@@ -253,11 +250,14 @@ window.confirmChoice = function() {
     const correct = gameData[currentRound].correct;
     const scoreAdd = (tempSelectedIdx === correct) ? 1 : 0;
     
+    // МГНОВЕННЫЙ ПОКАЗ ОТВЕТА (Локально)
+    revealAnswers(tempSelectedIdx, -1, correct);
+    document.getElementById('game-status').innerText = "Ждем ответ соперника...";
+
     db.ref(`duels/${roomID}/players/${myID}`).update({ 
         choice: tempSelectedIdx,
         score: firebase.database.ServerValue.increment(scoreAdd)
     }).then(() => {
-        // Проверка: ответили ли оба?
         db.ref(`duels/${roomID}/players`).once('value', snap => {
             const p = snap.val();
             const keys = Object.keys(p);
@@ -271,22 +271,21 @@ window.confirmChoice = function() {
 function revealAnswers(myChoice, oppChoice, correctChoice) {
     const cards = document.querySelectorAll('.card-item');
     cards.forEach((card, i) => {
-        card.className = 'card-item dimmed'; // Сброс всего
+        card.className = 'card-item dimmed';
         if (i === correctChoice) {
             card.classList.remove('dimmed');
             card.classList.add('correct-choice');
         }
-        if (i === myChoice && i !== correctChoice) {
+        if (i === myChoice && i !== correctChoice && myChoice !== -1) {
             card.classList.remove('dimmed');
             card.classList.add('wrong-choice');
         }
     });
 
-    // Одиночное воспроизведение звука
-    if (lastRevealedRound !== currentRound) {
+    if (lastRevealedRound !== currentRound && myChoice !== -1) {
         lastRevealedRound = currentRound;
         if (myChoice === correctChoice) sfxCorrect.play().catch(()=>{});
-        else if (myChoice !== -1) sfxWrong.play().catch(()=>{});
+        else sfxWrong.play().catch(()=>{});
     }
 }
 
@@ -297,20 +296,23 @@ function startTimer() {
     clearInterval(timer);
     timeLeft = 90;
     document.getElementById('timer-val').innerText = timeLeft;
-    document.getElementById('timer-header').style.color = '#ff4d4d';
+    document.getElementById('timer-header').style.color = '#fff';
 
     timer = setInterval(() => {
         timeLeft--;
         document.getElementById('timer-val').innerText = timeLeft;
         
-        if (timeLeft === 10 && !hasAnswered) bgmHurry.play().catch(()=>{});
+        if (timeLeft === 10 && !hasAnswered) {
+            document.getElementById('timer-header').style.color = '#ff4d4d';
+            bgmHurry.play().catch(()=>{});
+        }
         
         if (timeLeft <= 0) { 
             clearInterval(timer); 
             if (!hasAnswered) { 
                 closeZoom(); 
-                tempSelectedIdx = -1; // Не успел = неверный ответ
-                confirmChoice(); // Отправляем -1 (или просто 0 баллов)
+                tempSelectedIdx = -1; 
+                confirmChoice(true); // Принудительно отправляем ответ -1
             } 
         }
     }, 1000);
@@ -339,9 +341,10 @@ window.useTimeBoost = function() {
     timeLeft += 30;
     document.getElementById('timer-val').innerText = timeLeft;
     
-    if (timeLeft > 10) { bgmHurry.pause(); bgmHurry.currentTime = 0; }
-    document.getElementById('timer-header').style.color = '#3498db';
-    setTimeout(() => document.getElementById('timer-header').style.color = '#ff4d4d', 1000);
+    if (timeLeft > 10) { 
+        bgmHurry.pause(); bgmHurry.currentTime = 0; 
+        document.getElementById('timer-header').style.color = '#fff';
+    }
 };
 
 function updatePowerupUI() {
@@ -380,6 +383,5 @@ function showResults(data) {
         winnerCircle.classList.add('tie'); 
     }
     
-    // Хост удаляет комнату, чтобы база не засорялась
     if (isHost) db.ref('duels/' + roomID).remove();
 }
