@@ -6,10 +6,11 @@ const firebaseConfig = {
   messagingSenderId: "898063594475",
   appId: "1:898063594475:web:ba6516fbcaf9c9bf455fae",
   measurementId: "G-4PKB9FD7TQ",
-  // ВНИМАНИЕ: Проверь этот URL в консоли Firebase!
-  databaseURL: "https://geoduel-a0623-default-rtdb.firebaseio.com/"
+  // ИСПРАВЛЕННЫЙ URL (специально для твоего региона Belgium)
+  databaseURL: "https://geoduel-a0623-default-rtdb.europe-west1.firebasedatabase.app/"
 };
 
+// Инициализация
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
@@ -31,7 +32,7 @@ let myNickname = "Я";
 let currentRound = 0;
 let timer, timeLeft = 90;
 
-// === ЛОББИ ===
+// === ЛОГИКА ЛОББИ ===
 
 window.createRoom = function() {
     roomID = Math.floor(1000 + Math.random() * 9000).toString();
@@ -62,7 +63,7 @@ window.joinRoom = function() {
         document.getElementById('lobby-panel').style.display = 'block';
         document.getElementById('display-room-code').innerText = roomID;
         listenToRoom();
-    }).catch(err => alert("Ошибка входа. Проверь код и правила Firebase: " + err.message));
+    }).catch(err => alert("Ошибка входа: " + err.message));
 };
 
 function listenToRoom() {
@@ -70,11 +71,10 @@ function listenToRoom() {
         const data = snap.val();
         if (!data) return;
 
-        const players = data.players || {};
-        const pIDs = Object.keys(players);
+        const playersObj = data.players || {};
+        const pIDs = Object.keys(playersObj);
         document.getElementById('lobby-status').innerText = `Игроков: ${pIDs.length}/2`;
         
-        // Показываем кнопку старта только хосту и только когда двое
         if (isHost && pIDs.length === 2 && data.state === 'lobby') {
             document.getElementById('btn-start').style.display = 'block';
         }
@@ -85,7 +85,7 @@ function listenToRoom() {
     });
 }
 
-// === ИГРА ===
+// === ЛОГИКА ИГРЫ ===
 
 window.startGame = function() {
     db.ref('duels/' + roomID).update({ state: 'playing' });
@@ -139,10 +139,10 @@ function syncRound(data) {
         }
     }
 
+    // Если оба ответили - хост переключает раунд
     if (me.choice !== -1 && opp && opp.choice !== -1) {
         clearInterval(timer);
         if (isHost) {
-            // Хост переключает раунд через 3.5 сек
             setTimeout(() => {
                 nextRound(data);
             }, 3500);
@@ -169,7 +169,6 @@ function startTimer() {
 
 window.selectChoice = function(idx) {
     if (document.getElementById('img0').parentElement.classList.contains('dimmed')) return;
-    
     clearInterval(timer);
     const correct = gameData[currentRound].correct;
     let scoreAdd = (idx === correct) ? 1 : 0;
