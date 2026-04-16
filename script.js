@@ -1,3 +1,18 @@
+// ВСТАВЛЕН ТВОЙ КОНФИГ ИЗ СКРИНШОТА
+const firebaseConfig = {
+  apiKey: "AIzaSyDYrThCjHvqKg7Gs932_1wdOor8eMNBhO4",
+  authDomain: "geoduel-a0623.firebaseapp.com",
+  projectId: "geoduel-a0623",
+  storageBucket: "geoduel-a0623.firebasestorage.app",
+  messagingSenderId: "898063594475",
+  appId: "1:898063594475:web:ba6516fbcaf9c9bf455fae",
+  measurementId: "G-4PKB9FD7TQ",
+  databaseURL: "https://geoduel-a0623-default-rtdb.firebaseio.com/"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
 const gameData = [
     { map: 'images/map1.jpg', correct: 0, images: ['images/r1_1.jpg', 'images/r1_2.jpg', 'images/r1_3.jpg', 'images/r1_4.jpg'] },
     { map: 'images/map2.jpg', correct: 1, images: ['images/r2_1.jpg', 'images/r2_2.jpg', 'images/r2_3.jpg', 'images/r2_4.jpg'] },
@@ -9,206 +24,185 @@ const gameData = [
     { map: 'images/map8.jpg', correct: 3, images: ['images/r8_1.jpg', 'images/r8_2.jpg', 'images/r8_3.jpg', 'images/r8_4.jpg'] }
 ];
 
-const urlParams = new URLSearchParams(window.location.search);
-let peerIdFromUrl = urlParams.get('peer');
-
-// "БРОНЕБОЙНАЯ" КОНФИГУРАЦИЯ СЕТИ
-const peerConfig = {
-    host: '0.peerjs.com',
-    port: 443,
-    secure: true,
-    debug: 1,
-    config: {
-        'iceServers': [
-            { 'urls': 'stun:stun.l.google.com:19302' },
-            { 'urls': 'stun:stun1.l.google.com:19302' },
-            { 'urls': 'stun:stun2.l.google.com:19302' },
-            { 'urls': 'stun:stun3.l.google.com:19302' },
-            { 'urls': 'stun:stun4.l.google.com:19302' }
-        ]
-    }
-};
-
-let peer = new Peer(peerConfig);
-let conn;
-let myNickname = "Я", oppNickname = "Соперник";
-let currentRound = 0, myScore = 0, oppScore = 0;
-let iAmReady = false, oppIsReady = false, hasAnswered = false, oppHasAnswered = false;
+let roomID = "";
+let myID = "u_" + Math.random().toString(36).substr(2, 4);
+let isHost = false;
+let myNickname = "Я";
+let currentRound = 0;
 let timer, timeLeft = 90;
 
-// ТАЙМЕР ДЛЯ ПРОВЕРКИ ЗАВИСШЕГО ПОДКЛЮЧЕНИЯ
-let connectionTimeout = setTimeout(() => {
-    if (!peer.id) {
-        document.getElementById('network-status').innerText = "ОШИБКА: Провайдер блокирует сеть.";
-        document.getElementById('debug-info').innerText = "Попробуйте зайти с телефона или сменить браузер.";
-    }
-}, 12000);
+// === ЛОББИ ===
 
-window.onload = () => {
-    if (!peerIdFromUrl) {
-        document.getElementById('host-controls-ui').style.display = 'block';
-    } else {
-        document.getElementById('guest-controls-ui').style.display = 'block';
-    }
+window.createRoom = function() {
+    roomID = Math.floor(1000 + Math.random() * 9000).toString();
+    isHost = true;
+    myNickname = document.getElementById('nick-input').value || "Хост";
+    
+    db.ref('duels/' + roomID).set({
+        state: 'lobby',
+        currentRound: 0,
+        players: { [myID]: { name: myNickname, score: 0, ready: false, choice: -1 } }
+    });
+    
+    document.getElementById('menu-initial').style.display = 'none';
+    document.getElementById('lobby-panel').style.display = 'block';
+    document.getElementById('display-room-code').innerText = roomID;
+    listenToRoom();
 };
 
-peer.on('open', (id) => {
-    clearTimeout(connectionTimeout);
-    document.getElementById('network-status').innerText = "СЕТЬ: ГОТОВА";
-    document.getElementById('network-status').style.color = "#2ecc71";
-    document.getElementById('btn-start-game').disabled = false;
-    
-    if (!peerIdFromUrl) {
-        const gameUrl = window.location.origin + window.location.pathname + '?peer=' + id;
-        document.getElementById('game-url').innerText = gameUrl;
-        document.getElementById('btn-copy').onclick = () => {
-            navigator.clipboard.writeText(gameUrl);
-            document.getElementById('btn-copy').innerText = "ССЫЛКА В БУФЕРЕ!";
-        };
-        document.getElementById('btn-start-game').onclick = () => {
-            myNickname = document.getElementById('nick-input').value || "Хост";
-            document.getElementById('name-me').innerText = myNickname;
-            document.getElementById('setup-overlay').style.display = 'none';
-            document.getElementById('main-game-container').style.display = 'flex';
-        };
-    }
-});
+window.joinRoom = function() {
+    roomID = document.getElementById('room-input').value;
+    myNickname = document.getElementById('nick-input').value || "Игрок";
+    if(!roomID) return alert("Введите код!");
 
-peer.on('connection', (incoming) => {
-    conn = incoming;
-    setupConnection(conn);
-});
+    db.ref('duels/' + roomID + '/players/' + myID).set({
+        name: myNickname, score: 0, ready: false, choice: -1
+    });
 
-peer.on('error', (err) => {
-    console.error("PeerJS Error Type:", err.type);
-    document.getElementById('network-status').innerText = "СЕТЬ: ОШИБКА (" + err.type + ")";
-    document.getElementById('network-status').style.color = "#e74c3c";
-});
-
-window.joinDuel = function() {
-    myNickname = document.getElementById('nick-input').value || "Гость";
-    document.getElementById('name-me').innerText = myNickname;
-    document.getElementById('setup-overlay').style.display = 'none';
-    document.getElementById('main-game-container').style.display = 'flex';
-    
-    conn = peer.connect(peerIdFromUrl, { reliable: true });
-    setupConnection(conn);
+    document.getElementById('menu-initial').style.display = 'none';
+    document.getElementById('lobby-panel').style.display = 'block';
+    document.getElementById('display-room-code').innerText = roomID;
+    listenToRoom();
 };
 
-function setupConnection(c) {
-    c.on('open', () => {
-        c.send({ type: 'init-name', name: myNickname });
+function listenToRoom() {
+    db.ref('duels/' + roomID).on('value', (snap) => {
+        const data = snap.val();
+        if (!data) return;
+
+        const pIDs = Object.keys(data.players || {});
+        document.getElementById('lobby-status').innerText = `Игроков: ${pIDs.length}/2`;
         
-        c.on('data', (data) => {
-            if (data.type === 'init-name') {
-                oppNickname = data.name;
-                document.getElementById('name-opp').innerText = oppNickname;
-                document.getElementById('status').innerText = "Соперник подключился!";
-                if (!peerIdFromUrl) c.send({ type: 'init-name', name: myNickname });
-            }
-            if (data.type === 'ready') { oppIsReady = true; checkStartRound(); }
-            if (data.type === 'answer') {
-                oppHasAnswered = true;
-                if (data.choice === gameData[currentRound].correct) oppScore++;
-                document.getElementById('score-opp').innerText = oppScore;
-                checkRoundEnd();
-            }
-        });
+        if (isHost && pIDs.length === 2 && data.state === 'lobby') {
+            document.getElementById('btn-start').style.display = 'block';
+        }
+
+        if (data.state === 'playing') {
+            startClientGame(data);
+        }
     });
 }
 
-// === ЛОГИКА ИГРЫ ===
-window.setReady = function() {
-    if (iAmReady) return;
-    iAmReady = true;
-    document.getElementById('ready-btn').disabled = true;
-    document.getElementById('ready-status').innerText = "Ожидание соперника...";
-    if (conn && conn.open) conn.send({ type: 'ready' });
-    checkStartRound();
+// === ИГРА ===
+
+window.startGame = function() {
+    db.ref('duels/' + roomID).update({ state: 'playing' });
 };
 
-function checkStartRound() {
-    if (iAmReady && oppIsReady) {
+function startClientGame(data) {
+    document.getElementById('setup-overlay').style.display = 'none';
+    document.getElementById('main-game-container').style.display = 'flex';
+    
+    const pIDs = Object.keys(data.players);
+    const oppID = pIDs.find(id => id !== myID);
+    
+    document.getElementById('name-me').innerText = myNickname;
+    document.getElementById('name-opp').innerText = oppID ? data.players[oppID].name : "Ожидание...";
+    document.getElementById('score-me').innerText = data.players[myID].score;
+    document.getElementById('score-opp').innerText = oppID ? data.players[oppID].score : 0;
+
+    syncRound(data);
+}
+
+function syncRound(data) {
+    currentRound = data.currentRound;
+    const round = gameData[currentRound];
+    const me = data.players[myID];
+    const oppID = Object.keys(data.players).find(id => id !== myID);
+    const opp = data.players[oppID];
+
+    document.getElementById('round-num').innerText = currentRound + 1;
+    document.getElementById('map-preview').src = round.map;
+
+    // Если оба не готовы - показываем экран подготовки
+    if (!me.ready || (opp && !opp.ready)) {
+        document.getElementById('prep-screen').style.display = 'block';
+        document.getElementById('round-screen').style.display = 'none';
+        document.getElementById('ready-btn').disabled = me.ready;
+        document.getElementById('ready-status').innerText = me.ready ? "Ждем соперника..." : "Нажми кнопку!";
+    } 
+    // Если оба готовы - играем раунд
+    else if (me.ready && opp.ready) {
         document.getElementById('prep-screen').style.display = 'none';
         document.getElementById('round-screen').style.display = 'flex';
-        loadRound();
+        
+        // Загрузка картинок раунда, если еще не выбрал
+        if (me.choice === -1) {
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`img${i}`).src = round.images[i];
+                document.getElementById(`img${i}`).parentElement.className = 'option';
+            }
+            document.getElementById('status').innerText = "Твой ход!";
+            startTimer();
+        } else {
+            // Если ты уже выбрал, а соперник нет
+            document.getElementById('status').innerText = opp.choice === -1 ? "Ждем соперника..." : "Раунд завершен!";
+            revealLogic(me.choice, opp.choice, round.correct);
+        }
+    }
+
+    // Если оба сделали выбор - ждем и переходим к след. раунду
+    if (me.choice !== -1 && opp && opp.choice !== -1) {
+        clearInterval(timer);
+        if (isHost) {
+            setTimeout(() => {
+                nextRound(data);
+            }, 3500);
+        }
     }
 }
 
-function loadRound() {
-    hasAnswered = false; oppHasAnswered = false; timeLeft = 90;
-    document.getElementById('status').innerText = "Твой ход!";
-    document.getElementById('game-grid').style.pointerEvents = 'auto';
-    
-    const round = gameData[currentRound];
-    document.getElementById('round-num').innerText = currentRound + 1;
-    document.getElementById('map-preview').src = round.map;
-    
-    for (let i = 0; i < 4; i++) {
-        const opt = document.querySelectorAll('.option')[i];
-        opt.className = 'option';
-        document.getElementById(`img${i}`).src = round.images[i];
-    }
-    startTimer();
-}
+window.setReady = function() {
+    db.ref(`duels/${roomID}/players/${myID}`).update({ ready: true });
+};
 
 function startTimer() {
     clearInterval(timer);
+    timeLeft = 90;
     timer = setInterval(() => {
         timeLeft--;
         document.getElementById('timer-val').innerText = timeLeft;
         if (timeLeft <= 0) {
             clearInterval(timer);
-            if (!hasAnswered) sendChoice(-1);
+            selectChoice(-1);
         }
     }, 1000);
 }
 
-window.sendChoice = function(index) {
-    if (hasAnswered) return;
-    hasAnswered = true;
+window.selectChoice = function(idx) {
     clearInterval(timer);
-    document.getElementById('game-grid').style.pointerEvents = 'none';
-
     const correct = gameData[currentRound].correct;
-    if (index === correct) {
-        myScore++;
-        document.getElementById('score-me').innerText = myScore;
-    }
+    let scoreAdd = (idx === correct) ? 1 : 0;
     
-    revealAnswers(index, correct);
-    if (conn && conn.open) conn.send({ type: 'answer', choice: index });
-    document.getElementById('status').innerText = "Ждем ответ...";
-    checkRoundEnd();
+    db.ref(`duels/${roomID}/players/${myID}`).update({ 
+        choice: idx,
+        score: firebase.database.ServerValue.increment(scoreAdd)
+    });
 };
 
-function revealAnswers(myChoice, correctChoice) {
-    const opts = document.querySelectorAll('.option');
-    opts.forEach(o => o.classList.add('dimmed'));
-    opts[correctChoice].classList.add('correct-choice');
-    opts[correctChoice].classList.remove('dimmed');
-    if (myChoice !== correctChoice && myChoice !== -1) {
-        opts[myChoice].classList.add('wrong-choice');
-        opts[myChoice].classList.remove('dimmed');
-    }
+function revealLogic(meIdx, oppIdx, correct) {
+    const options = document.querySelectorAll('.option');
+    options.forEach((opt, i) => {
+        opt.classList.add('dimmed');
+        if (i === correct) opt.classList.add('correct-choice');
+        if (i === meIdx && i !== correct) opt.classList.add('wrong-choice');
+        if (i === meIdx || i === correct) opt.classList.remove('dimmed');
+    });
 }
 
-function checkRoundEnd() {
-    if (hasAnswered && oppHasAnswered) {
-        setTimeout(() => {
-            currentRound++;
-            if (currentRound < gameData.length) {
-                iAmReady = false; oppIsReady = false;
-                document.getElementById('ready-btn').disabled = false;
-                document.getElementById('ready-status').innerText = "Ждем готовности...";
-                document.getElementById('prep-screen').style.display = 'flex';
-                document.getElementById('round-screen').style.display = 'none';
-                document.getElementById('map-preview').src = gameData[currentRound].map;
-                document.getElementById('round-num').innerText = currentRound + 1;
-            } else {
-                alert(`ИГРА ОКОНЧЕНА! Счет: ${myScore} - ${oppScore}`);
-                location.reload();
-            }
-        }, 3000);
+function nextRound(data) {
+    let next = currentRound + 1;
+    if (next < gameData.length) {
+        const updates = { currentRound: next };
+        const pIDs = Object.keys(data.players);
+        pIDs.forEach(id => {
+            updates[`players/${id}/ready`] = false;
+            updates[`players/${id}/choice`] = -1;
+        });
+        db.ref('duels/' + roomID).update(updates);
+    } else {
+        alert("ИГРА ОКОНЧЕНА!");
+        db.ref('duels/' + roomID).remove();
+        location.reload();
     }
 }
