@@ -6,11 +6,9 @@ const firebaseConfig = {
   messagingSenderId: "898063594475",
   appId: "1:898063594475:web:ba6516fbcaf9c9bf455fae",
   measurementId: "G-4PKB9FD7TQ",
-  // ИСПРАВЛЕННЫЙ URL (специально для твоего региона Belgium)
   databaseURL: "https://geoduel-a0623-default-rtdb.europe-west1.firebasedatabase.app/"
 };
 
-// Инициализация
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
@@ -32,13 +30,20 @@ let myNickname = "Я";
 let currentRound = 0;
 let timer, timeLeft = 90;
 
-// === ЛОГИКА ЛОББИ ===
+// УВЕЛИЧЕНИЕ КАРТИНОК
+window.zoomImage = function(src) {
+    document.getElementById('modal-img').src = src;
+    document.getElementById('image-modal').style.display = 'flex';
+};
+window.closeImage = function() {
+    document.getElementById('image-modal').style.display = 'none';
+};
 
+// ЛОББИ
 window.createRoom = function() {
     roomID = Math.floor(1000 + Math.random() * 9000).toString();
     isHost = true;
     myNickname = document.getElementById('nick-input').value || "Хост";
-    
     db.ref('duels/' + roomID).set({
         state: 'lobby',
         currentRound: 0,
@@ -48,14 +53,13 @@ window.createRoom = function() {
         document.getElementById('lobby-panel').style.display = 'block';
         document.getElementById('display-room-code').innerText = roomID;
         listenToRoom();
-    }).catch(err => alert("Ошибка базы данных: " + err.message));
+    });
 };
 
 window.joinRoom = function() {
     roomID = document.getElementById('room-input').value;
     myNickname = document.getElementById('nick-input').value || "Игрок";
     if(!roomID) return alert("Введите код!");
-
     db.ref('duels/' + roomID + '/players/' + myID).set({
         name: myNickname, score: 0, ready: false, choice: -1
     }).then(() => {
@@ -63,29 +67,23 @@ window.joinRoom = function() {
         document.getElementById('lobby-panel').style.display = 'block';
         document.getElementById('display-room-code').innerText = roomID;
         listenToRoom();
-    }).catch(err => alert("Ошибка входа: " + err.message));
+    });
 };
 
 function listenToRoom() {
     db.ref('duels/' + roomID).on('value', (snap) => {
         const data = snap.val();
         if (!data) return;
-
-        const playersObj = data.players || {};
-        const pIDs = Object.keys(playersObj);
+        const pIDs = Object.keys(data.players || {});
         document.getElementById('lobby-status').innerText = `Игроков: ${pIDs.length}/2`;
-        
         if (isHost && pIDs.length === 2 && data.state === 'lobby') {
             document.getElementById('btn-start').style.display = 'block';
         }
-
         if (data.state === 'playing') {
             startClientGame(data);
         }
     });
 }
-
-// === ЛОГИКА ИГРЫ ===
 
 window.startGame = function() {
     db.ref('duels/' + roomID).update({ state: 'playing' });
@@ -94,15 +92,12 @@ window.startGame = function() {
 function startClientGame(data) {
     document.getElementById('setup-overlay').style.display = 'none';
     document.getElementById('main-game-container').style.display = 'flex';
-    
     const pIDs = Object.keys(data.players);
     const oppID = pIDs.find(id => id !== myID);
-    
     document.getElementById('name-me').innerText = myNickname;
     document.getElementById('name-opp').innerText = oppID ? data.players[oppID].name : "Соперник";
     document.getElementById('score-me').innerText = data.players[myID].score;
     document.getElementById('score-opp').innerText = oppID ? data.players[oppID].score : 0;
-
     syncRound(data);
 }
 
@@ -117,36 +112,30 @@ function syncRound(data) {
     document.getElementById('map-preview').src = round.map;
 
     if (!me.ready || (opp && !opp.ready)) {
-        document.getElementById('prep-screen').style.display = 'block';
+        document.getElementById('prep-screen').style.display = 'flex';
         document.getElementById('round-screen').style.display = 'none';
         document.getElementById('ready-btn').disabled = me.ready;
-        document.getElementById('ready-status').innerText = me.ready ? "Ждем соперника..." : "Нажми кнопку!";
+        document.getElementById('ready-status').innerText = me.ready ? "Ожидание соперника..." : "Нажми готовность!";
     } 
     else if (me.ready && opp.ready) {
         document.getElementById('prep-screen').style.display = 'none';
-        document.getElementById('round-screen').style.display = 'flex';
-        
+        document.getElementById('round-screen').style.display = 'grid';
         if (me.choice === -1) {
             for (let i = 0; i < 4; i++) {
                 document.getElementById(`img${i}`).src = round.images[i];
-                document.getElementById(`img${i}`).parentElement.className = 'option';
+                document.getElementById(`img${i}`).parentElement.className = 'option-card';
             }
-            document.getElementById('status').innerText = "Твой ход!";
+            document.getElementById('status-label').innerText = "Твой выбор!";
             startTimer();
         } else {
-            document.getElementById('status').innerText = opp.choice === -1 ? "Ждем соперника..." : "Раунд завершен!";
+            document.getElementById('status-label').innerText = opp.choice === -1 ? "Ждем соперника..." : "Раунд завершен!";
             revealLogic(me.choice, opp.choice, round.correct);
         }
     }
 
-    // Если оба ответили - хост переключает раунд
-    if (me.choice !== -1 && opp && opp.choice !== -1) {
+    if (me.choice !== -1 && opp && opp.choice !== -1 && isHost) {
         clearInterval(timer);
-        if (isHost) {
-            setTimeout(() => {
-                nextRound(data);
-            }, 3500);
-        }
+        setTimeout(() => nextRound(data), 4000);
     }
 }
 
@@ -160,10 +149,7 @@ function startTimer() {
     timer = setInterval(() => {
         timeLeft--;
         document.getElementById('timer-val').innerText = timeLeft;
-        if (timeLeft <= 0) {
-            clearInterval(timer);
-            selectChoice(-1);
-        }
+        if (timeLeft <= 0) { clearInterval(timer); selectChoice(-1); }
     }, 1000);
 }
 
@@ -172,7 +158,6 @@ window.selectChoice = function(idx) {
     clearInterval(timer);
     const correct = gameData[currentRound].correct;
     let scoreAdd = (idx === correct) ? 1 : 0;
-    
     db.ref(`duels/${roomID}/players/${myID}`).update({ 
         choice: idx,
         score: firebase.database.ServerValue.increment(scoreAdd)
@@ -180,7 +165,7 @@ window.selectChoice = function(idx) {
 };
 
 function revealLogic(meIdx, oppIdx, correct) {
-    const options = document.querySelectorAll('.option');
+    const options = document.querySelectorAll('.option-card');
     options.forEach((opt, i) => {
         opt.classList.add('dimmed');
         if (i === correct) opt.classList.add('correct-choice');
@@ -191,18 +176,15 @@ function revealLogic(meIdx, oppIdx, correct) {
 
 function nextRound(data) {
     let next = currentRound + 1;
-    const pIDs = Object.keys(data.players);
-    const updates = {};
-    
     if (next < gameData.length) {
-        updates['currentRound'] = next;
-        pIDs.forEach(id => {
+        const updates = { currentRound: next };
+        Object.keys(data.players).forEach(id => {
             updates[`players/${id}/ready`] = false;
             updates[`players/${id}/choice`] = -1;
         });
         db.ref('duels/' + roomID).update(updates);
     } else {
-        alert("ИГРА ОКОНЧЕНА!");
+        alert("Конец игры!");
         db.ref('duels/' + roomID).remove();
         location.reload();
     }
