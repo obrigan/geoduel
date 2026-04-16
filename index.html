@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoDuel 1v1: Firebase Edition</title>
+    <title>GeoDuel 1v1</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
@@ -22,8 +22,8 @@
         </div>
 
         <div id="lobby-panel" style="display: none;">
-            <div class="url-box">КОД КОМНАТЫ: <b id="display-room-code">...</b></div>
-            <div id="lobby-status">Ждем соперника...</div>
+            <div class="url-box">КОД КОМНАТЫ: <b id="display-room-code" style="color: #3498db; font-size: 24px;">...</b></div>
+            <div id="lobby-status" style="margin: 20px 0; font-weight: bold; color: #f1c40f;">Подключение к серверу...</div>
             <button id="btn-start" class="menu-btn" style="display: none;" onclick="startGame()">НАЧАТЬ ДУЭЛЬ</button>
         </div>
     </div>
