@@ -11,20 +11,24 @@
 <body>
 
     <div id="setup-overlay">
-        <h1 style="font-size: 56px; color: #3498db; margin-bottom: 30px;">GeoDuel 1v1</h1>
-        <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12">
+        <h1 style="font-size: 56px; color: #fff; margin-bottom: 30px; font-weight: 800;">GeoDuel <span style="color: #3498db;">1v1</span></h1>
         
-        <div id="menu-initial">
-            <button class="menu-btn" onclick="createRoom()">СОЗДАТЬ ЛОББИ</button>
-            <div style="margin: 15px 0; color: #555; text-align: center;">ИЛИ</div>
-            <input type="text" id="room-input" placeholder="Код комнаты">
-            <button class="menu-btn secondary-btn" onclick="joinRoom()">ЗАЙТИ ПО КОДУ</button>
+        <div id="menu-initial" style="display: flex; flex-direction: column; align-items: center;">
+            <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12">
+            <button class="menu-btn" style="width: 320px; margin-bottom: 15px;" onclick="createRoom()">СОЗДАТЬ ЛОББИ</button>
+            
+            <div style="margin: 10px 0 15px 0; color: #555; font-weight: bold; align-self: flex-start; padding-left: 5px;">или</div>
+            
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="room-input" placeholder="Код комнаты" style="width: 150px; margin-bottom: 0;">
+                <button class="menu-btn secondary-btn" style="width: 160px; margin: 0;" onclick="joinRoom()">ЗАЙТИ ПО КОДУ</button>
+            </div>
         </div>
 
         <div id="lobby-panel" style="display: none; text-align: center;">
-            <div class="url-box" style="font-size: 20px;">КОД: <b id="display-room-code" style="color: #f1c40f;">...</b></div>
-            <div id="lobby-status" style="margin: 20px 0;">Ждем соперника...</div>
-            <button id="btn-start" class="menu-btn" style="display: none; margin: 0 auto;" onclick="startGame()">НАЧАТЬ ДУЭЛЬ</button>
+            <div class="url-box" style="font-size: 20px;">КОД КОМНАТЫ: <b id="display-room-code" style="color: #fff;">...</b></div>
+            <div id="lobby-status" style="margin: 20px 0; color: #fff;">Игроков: 1/2</div>
+            <button id="btn-start" class="menu-btn" style="display: none; margin: 0 auto; width: 320px;" onclick="startGame()">НАЧАТЬ</button>
         </div>
     </div>
 
@@ -82,7 +86,7 @@
                 
                 <div id="final-scores" style="font-size: 32px; font-family: monospace; color: white; margin: 10px 0;"></div>
                 
-                <button class="menu-btn" style="margin-top: 30px;" onclick="location.reload()">ИГРАТЬ ЕЩЕ</button>
+                <button class="menu-btn" style="margin-top: 30px; width: 320px;" onclick="location.reload()">ИГРАТЬ ЕЩЕ</button>
             </div>
         </div>
     </div>
