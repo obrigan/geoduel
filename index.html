@@ -3,11 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoDuel 1v1</title>
+    <title>GeoDuel 1v1: Final Fix</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
+
+    <div id="setup-overlay">
+        <h1>GeoDuel 1v1</h1>
+        <input type="text" id="nick-input" placeholder="Твой никнейм" maxlength="12" autocomplete="off">
+        
+        <div id="host-controls-ui" style="display: none;">
+            <div class="url-box" id="game-url">Генерация ссылки...</div>
+            <button id="btn-copy" class="menu-btn">СКОПИРОВАТЬ ССЫЛКУ</button>
+            <button id="btn-start-game" class="menu-btn secondary-btn" disabled>ПЕРЕЙТИ К ИГРЕ</button>
+        </div>
+
+        <div id="guest-controls-ui" style="display: none;">
+            <button id="btn-join-game" class="menu-btn" onclick="joinDuel()">ПРИСОЕДИНИТЬСЯ</button>
+        </div>
+        
+        <p id="network-status" style="color: #f1c40f; margin-top: 15px;">СЕТЬ: Инициализация...</p>
+        <p id="debug-info" style="color: #555; font-size: 10px; margin-top: 5px;"></p>
+    </div>
 
     <div id="main-game-container" style="display: none;">
         <div id="ui-layer">
@@ -22,54 +40,22 @@
 
         <div class="section-wrapper">
             <div id="prep-screen" class="prep-container active">
-                <h2 id="round-title">Раунд <span id="round-num">1</span></h2>
+                <h2>Раунд <span id="round-num">1</span></h2>
                 <div class="map-container">
-                    <img id="map-preview" src="images/map1.jpg" alt="Карта">
+                    <img id="map-preview" src="" alt="Карта">
                 </div>
                 <button id="ready-btn" onclick="setReady()">ГОТОВ!</button>
-                <p id="ready-status">Ждем готовности игроков...</p>
+                <p id="ready-status">Ждем готовности...</p>
             </div>
 
             <div id="round-screen">
-                <div id="powerups-panel">
-                    <div class="powerup-btn" id="btn-5050" onclick="use5050()">
-                        <span class="powerup-icon">🌗</span>
-                        <span class="powerup-text">50/50</span>
-                    </div>
-                    <div class="powerup-btn" id="btn-time" onclick="useTimeBoost()">
-                        <span class="powerup-icon">⏱️</span>
-                        <span class="powerup-text">+30 СЕК</span>
-                    </div>
-                </div>
-
                 <div id="game-grid">
-                    <div class="option" onclick="selectCard(0)"><img id="img0" src=""></div>
-                    <div class="option" onclick="selectCard(1)"><img id="img1" src=""></div>
-                    <div class="option" onclick="selectCard(2)"><img id="img2" src=""></div>
-                    <div class="option" onclick="selectCard(3)"><img id="img3" src=""></div>
+                    <div class="option" onclick="sendChoice(0)"><img id="img0" src=""></div>
+                    <div class="option" onclick="sendChoice(1)"><img id="img1" src=""></div>
+                    <div class="option" onclick="sendChoice(2)"><img id="img2" src=""></div>
+                    <div class="option" onclick="sendChoice(3)"><img id="img3" src=""></div>
                 </div>
             </div>
-
-            <div id="results-screen" class="prep-container">
-                <h1 id="results-title" style="color:#e0e0e0; font-size: 50px; margin-bottom: 30px;">ИТОГИ</h1>
-                <div class="winner-display">
-                    <span class="trophy-icon">🏆</span>
-                    <div id="winner-circle-element" class="winner-circle">
-                        <span id="winner-name">Никнейм</span>
-                    </div>
-                    <span class="trophy-icon">🏆</span>
-                </div>
-                <div id="final-scores" style="font-size: 32px; font-family: monospace; color: white; margin: 10px 0;"></div>
-                <button class="menu-btn" style="margin-top: 30px;" onclick="location.reload()">ИГРАТЬ ЕЩЕ</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="zoom-overlay" onclick="closeZoom()">
-        <div class="zoom-content" onclick="event.stopPropagation()">
-            <img id="zoomed-img" src="">
-            <button id="confirm-choice-btn" class="menu-btn" onclick="confirmChoice()">ОТВЕТИТЬ</button>
-            <p style="color: #aaa; margin-top: 10px; cursor: pointer;" onclick="closeZoom()">назад к выбору</p>
         </div>
     </div>
 
