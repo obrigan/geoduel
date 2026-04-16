@@ -1,4 +1,4 @@
-// НАСТРОЙКИ FIREBASE (Бельгия)
+// Конфиг Firebase (Бельгия)
 const firebaseConfig = {
   apiKey: "AIzaSyDYrThCjHvqKg7Gs932_1wdOor8eMNBhO4",
   authDomain: "geoduel-a0623.firebaseapp.com",
@@ -24,7 +24,7 @@ const gameData = [
     { map: 'images/map8.jpg', correct: 3, images: ['images/r8_1.jpg', 'images/r8_2.jpg', 'images/r8_3.jpg', 'images/r8_4.jpg'] }
 ];
 
-// ЗВУКОВЫЕ ЭФФЕКТЫ (Оригинальные)
+// Звуки (Оригинальные)
 const bgmMenu = new Audio('sounds/menu.mp3'); bgmMenu.loop = true; bgmMenu.volume = 0.07;
 const bgmHurry = new Audio('sounds/hurry.mp3'); bgmHurry.loop = true; bgmHurry.volume = 0.13;
 const sfxPowerup = new Audio('sounds/powerup.mp3'); sfxPowerup.volume = 0.2;
@@ -42,7 +42,7 @@ let hasAnswered = false;
 let timer, timeLeft = 90;
 let tempSelectedIdx = -1;
 let used5050 = false, usedTimeBoost = false, hintUsedThisRound = false;
-let lastRevealedRound = -1;
+let lastRevealedRound = -1; // Чтобы звук играл 1 раз за раунд
 
 document.body.addEventListener('click', () => {
     if (document.getElementById('setup-overlay').style.display !== 'none' && bgmMenu.paused) {
@@ -136,14 +136,13 @@ function syncGame(data) {
     document.getElementById('round-num').innerText = currentRound + 1;
     document.getElementById('map-preview').src = round.map;
 
-    // СОСТОЯНИЕ РАУНДА (Исправление бага с зависанием)
+    // СОСТОЯНИЕ: Конец раунда (показываем ответы и переключаем)
     if (data.state === 'round_end') {
         clearInterval(timer);
         bgmHurry.pause(); bgmHurry.currentTime = 0;
         document.getElementById('status').innerText = "Раунд завершен!";
         revealAnswers(me.choice, opp ? opp.choice : -1, round.correct);
 
-        // Хост переключает раунд через 4 секунды
         if (isHost && !window.isTransitioning) {
             window.isTransitioning = true;
             setTimeout(() => {
@@ -163,13 +162,14 @@ function syncGame(data) {
         return;
     }
 
-    // НОРМАЛЬНОЕ СОСТОЯНИЕ (Игра или Ожидание)
+    // СОСТОЯНИЕ: Ожидание готовности
     if (!me.ready || (opp && !opp.ready)) {
         document.getElementById('prep-screen').style.display = 'flex';
         document.getElementById('round-screen').style.display = 'none';
         document.getElementById('ready-btn').disabled = me.ready;
         document.getElementById('ready-status').innerText = me.ready ? "Ожидание соперника..." : "Нажми готовность!";
     } 
+    // СОСТОЯНИЕ: Выбор карточки
     else if (me.ready && opp.ready) {
         document.getElementById('prep-screen').style.display = 'none';
         document.getElementById('round-screen').style.display = 'block';
@@ -182,6 +182,7 @@ function syncGame(data) {
                 }
                 hintUsedThisRound = false;
                 hasAnswered = false;
+                tempSelectedIdx = -1;
                 updatePowerupUI();
                 document.getElementById('status').innerText = "Твой ход!";
                 document.getElementById('game-grid').style.pointerEvents = 'auto';
@@ -190,14 +191,6 @@ function syncGame(data) {
         } else {
             hasAnswered = true;
             document.getElementById('status').innerText = "Ждем соперника...";
-            // Локальная подсветка до ответа соперника
-            document.querySelectorAll('.option').forEach((opt, i) => {
-                opt.classList.add('dimmed');
-                if (i === me.choice) {
-                    opt.classList.remove('dimmed');
-                    opt.classList.add('selected-state');
-                }
-            });
         }
     }
 }
@@ -295,7 +288,6 @@ function sendChoice(index) {
         choice: index,
         score: firebase.database.ServerValue.increment(scoreAdd)
     }).then(() => {
-        // Проверяем, ответили ли оба
         db.ref(`duels/${roomID}/players`).once('value', snap => {
             const p = snap.val();
             const keys = Object.keys(p);
@@ -321,7 +313,6 @@ function revealAnswers(myChoice, oppChoice, correctChoice) {
         options[myChoice].classList.add('wrong-choice');
     }
 
-    // Проигрываем звук только один раз за раунд
     if (lastRevealedRound !== currentRound) {
         lastRevealedRound = currentRound;
         if (myChoice === correctChoice) sfxCorrect.play().catch(()=>{});
@@ -358,7 +349,5 @@ function showResults(data) {
         winnerCircle.classList.add('tie'); 
     }
     
-    setTimeout(() => resultsScreen.classList.add('active'), 50);
-
     if (isHost) db.ref('duels/' + roomID).remove();
 }
